@@ -1,0 +1,37 @@
+{
+  "role_name": "项目经理",
+  "role_type": "custom_role",
+  "base_rule_map": {"copy": false, "download": true},
+  "table_rule_map": {
+    "项目主表": {
+      "perm": "edit",
+      "view_rule": {"allow_edit": false, "visibility": {"all_visible": true}},
+      "field_rule": {"field_perm_mode": "all_edit"},
+      "record_rule": {
+        "record_operations": ["add"],
+        "edit_filter_rule_group": {
+          "conjunction": "and",
+          "filter_rules": [
+            {"conjunction": "and", "filters": [{"field_name": "项目经理", "operator": "contains"}]}
+          ]
+        },
+        "other_record_all_read": true
+      }
+    },
+    "任务表": {
+      "perm": "edit",
+      "view_rule": {"allow_edit": false, "visibility": {"all_visible": true}},
+      "field_rule": {"field_perm_mode": "all_edit"},
+      "record_rule": {
+        "record_operations": ["add", "delete"],
+        "other_record_all_read": true
+      }
+    },
+    "速查卡·字段分级权限": {
+      "perm": "read_only",
+      "view_rule": {"allow_edit": false, "visibility": {"all_visible": true}},
+      "field_rule": {"field_perm_mode": "all_read"},
+      "record_rule": {"record_operations": [], "other_record_all_read": true}
+    }
+  }
+}

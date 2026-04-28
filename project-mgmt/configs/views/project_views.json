@@ -1,0 +1,25 @@
+{
+  "_comment": "项目主表视图配置",
+  "views": [
+    {
+      "name": "进行中项目",
+      "type": "grid",
+      "filter": {
+        "logic": "and",
+        "conditions": [
+          ["项目状态", "intersects", ["筹备", "进行中"]]
+        ]
+      }
+    },
+    {
+      "name": "我负责的项目",
+      "type": "grid",
+      "_ui_note": "需要用户在飞书 UI 里手动加动态筛选:项目经理 contains 当前用户",
+      "filter": null
+    },
+    {
+      "name": "项目甘特图",
+      "type": "gantt"
+    }
+  ]
+}

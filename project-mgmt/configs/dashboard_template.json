@@ -1,0 +1,168 @@
+{
+  "_comment": "综合看板·模板 配置 — bootstrap 时建 dashboard 用;new-project 时也用作克隆源。 占位:filter.所属项目名称.value 用 <PROJECT_NAME>;table_name 用 <TASK_TABLE_NAME>。",
+  "dashboard_name": "综合看板·模板",
+  "blocks": [
+    {
+      "name": "里程碑进度矩阵(按状态堆叠)",
+      "type": "bar",
+      "data_config": {
+        "count_all": true,
+        "filter": {
+          "conditions": [
+            {
+              "field_name": "任务级别",
+              "operator": "is",
+              "value": "📋 二级工作"
+            },
+            {
+              "field_name": "所属项目名称",
+              "operator": "is",
+              "value": "<PROJECT_NAME>"
+            }
+          ],
+          "conjunction": "and"
+        },
+        "group_by": [
+          {
+            "field_name": "所属里程碑",
+            "mode": "integrated",
+            "sort": {
+              "type": "group"
+            }
+          },
+          {
+            "field_name": "状态",
+            "mode": "integrated",
+            "sort": {
+              "type": "group"
+            }
+          }
+        ],
+        "table_name": "<TASK_TABLE_NAME>"
+      }
+    },
+    {
+      "name": "一级工作完成率对比(%)",
+      "type": "column",
+      "data_config": {
+        "filter": {
+          "conditions": [
+            {
+              "field_name": "任务级别",
+              "operator": "is",
+              "value": "📋 二级工作"
+            },
+            {
+              "field_name": "所属项目名称",
+              "operator": "is",
+              "value": "<PROJECT_NAME>"
+            }
+          ],
+          "conjunction": "and"
+        },
+        "group_by": [
+          {
+            "field_name": "父任务",
+            "mode": "integrated",
+            "sort": {
+              "order": "desc",
+              "type": "value"
+            }
+          }
+        ],
+        "series": [
+          {
+            "field_name": "任务完成分",
+            "rollup": "AVERAGE"
+          }
+        ],
+        "table_name": "<TASK_TABLE_NAME>"
+      }
+    },
+    {
+      "name": "时间压力分布(按到期时段+状态)",
+      "type": "column",
+      "data_config": {
+        "count_all": true,
+        "filter": {
+          "conditions": [
+            {
+              "field_name": "任务级别",
+              "operator": "is",
+              "value": "📋 二级工作"
+            },
+            {
+              "field_name": "状态",
+              "operator": "isNot",
+              "value": "已取消"
+            },
+            {
+              "field_name": "所属项目名称",
+              "operator": "is",
+              "value": "<PROJECT_NAME>"
+            }
+          ],
+          "conjunction": "and"
+        },
+        "group_by": [
+          {
+            "field_name": "到期时段",
+            "mode": "integrated",
+            "sort": {
+              "type": "group"
+            }
+          },
+          {
+            "field_name": "状态",
+            "mode": "integrated",
+            "sort": {
+              "type": "group"
+            }
+          }
+        ],
+        "table_name": "<TASK_TABLE_NAME>"
+      }
+    },
+    {
+      "name": "任务状态(按级别堆叠)",
+      "type": "column",
+      "data_config": {
+        "count_all": true,
+        "filter": {
+          "conditions": [
+            {
+              "field_name": "所属项目名称",
+              "operator": "is",
+              "value": "<PROJECT_NAME>"
+            }
+          ],
+          "conjunction": "and"
+        },
+        "group_by": [
+          {
+            "field_name": "任务级别",
+            "mode": "integrated",
+            "sort": {
+              "type": "group"
+            }
+          },
+          {
+            "field_name": "状态",
+            "mode": "integrated",
+            "sort": {
+              "type": "group"
+            }
+          }
+        ],
+        "table_name": "<TASK_TABLE_NAME>"
+      }
+    },
+    {
+      "name": "说明",
+      "type": "text",
+      "data_config": {
+        "text": "## 进度全景图 · 操作指引\r\r**推进度**:打开「全部任务(树状浏览)」视图\r\r**看时间线**:打开「甘特图」视图\r\r**看个人任务**:打开「我的任务」视图\r\r**看阻塞/异常**:打开「状态异常监控」视图\r\r---\r\r**图表说明**:\r\r- *里程碑进度矩阵*:按 🏁 里程碑分组,展示其下叶子任务(📋)状态分布\r- *一级工作完成率*:按完成率降序,排首位的离完成最近\r- *时间压力分布*:按到期窗口分组,一眼看已过期/本周/下周的任务量\r- *任务状态按级别堆叠*:看各层级(🎯/🏁/📦/📋)推进健康度\r\r> 所有图表已按当前项目过滤"
+      }
+    }
+  ]
+}

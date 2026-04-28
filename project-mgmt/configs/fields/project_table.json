@@ -1,0 +1,82 @@
+{
+  "_comment": "项目主表字段定义 - 用于 lark-cli base +field-create 逐个创建",
+  "primary_field": {
+    "name": "项目名称",
+    "type": "text",
+    "description": "项目的简短标识名,作为主字段"
+  },
+  "fields": [
+    {
+      "name": "项目编号",
+      "type": "text",
+      "description": "项目唯一编号,建议格式 P<年份>-<序号>,如 P2026-001"
+    },
+    {
+      "name": "项目状态",
+      "type": "select",
+      "multiple": false,
+      "options": [
+        {"name": "筹备", "hue": "Gray", "lightness": "Lighter"},
+        {"name": "进行中", "hue": "Blue", "lightness": "Light"},
+        {"name": "暂停", "hue": "Orange", "lightness": "Light"},
+        {"name": "已完成", "hue": "Green", "lightness": "Light"},
+        {"name": "已归档", "hue": "Gray", "lightness": "Standard"}
+      ]
+    },
+    {
+      "name": "项目经理",
+      "type": "user",
+      "multiple": false,
+      "description": "项目的唯一负责人,每个项目只有一位"
+    },
+    {
+      "name": "项目成员",
+      "type": "user",
+      "multiple": true,
+      "description": "参与本项目的所有成员,含项目经理"
+    },
+    {
+      "name": "优先级",
+      "type": "select",
+      "multiple": false,
+      "options": [
+        {"name": "P0-紧急", "hue": "Red", "lightness": "Light"},
+        {"name": "P1-高", "hue": "Orange", "lightness": "Light"},
+        {"name": "P2-中", "hue": "Blue", "lightness": "Lighter"},
+        {"name": "P3-低", "hue": "Gray", "lightness": "Lighter"}
+      ]
+    },
+    {
+      "name": "开始日期",
+      "type": "datetime",
+      "style": {"format": "yyyy-MM-dd"}
+    },
+    {
+      "name": "计划结束日期",
+      "type": "datetime",
+      "style": {"format": "yyyy-MM-dd"}
+    },
+    {
+      "name": "项目目标",
+      "type": "text",
+      "description": "项目要达成的核心成果,建议 1-3 条"
+    },
+    {
+      "name": "项目描述",
+      "type": "text",
+      "description": "项目背景、范围边界、关键干系人"
+    },
+    {
+      "name": "保密等级",
+      "type": "select",
+      "multiple": false,
+      "description": "项目保密分级,驱动权限系统:L1 公开(全员可见) / L2 常规(默认) / L3 敏感(成员仅见分配给自己的) / L4 机密(白名单制)",
+      "options": [
+        {"name": "L1 公开", "hue": "Green", "lightness": "Lighter"},
+        {"name": "L2 常规", "hue": "Blue", "lightness": "Light"},
+        {"name": "L3 敏感", "hue": "Orange", "lightness": "Light"},
+        {"name": "L4 机密", "hue": "Red", "lightness": "Light"}
+      ]
+    }
+  ]
+}

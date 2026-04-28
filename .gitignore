@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Workspace / 测试产物(每次跑 eval 会产生)
+project-mgmt-workspace/
+*.skill
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# 本地状态
+~/.pm-skill/
+
+# 临时
+/tmp/
+*.log
+*.tmp
+
+# 敏感
+.env
+*.pem
+secrets/
+
+# 内部状态文件(含真实团队成员名 / open_id / base_token,不公开)
+internal-docs-dev/state/
+internal-docs-dev/scripts/migrate_mvp.py
+internal-docs-dev/scripts/share_base.md

@@ -1,0 +1,43 @@
+{
+  "_comment": "速查卡表字段定义 - 作为 Base 内的规范查询表",
+  "table_name": "速查卡·字段分级权限",
+  "primary_field": {
+    "name": "序号",
+    "type": "auto_number",
+    "style": {
+      "rules": [
+        {"type": "incremental_number", "length": 3}
+      ]
+    }
+  },
+  "fields": [
+    {
+      "name": "类别",
+      "type": "select",
+      "multiple": false,
+      "options": [
+        {"name": "任务分级标准", "hue": "Red", "lightness": "Lighter"},
+        {"name": "保密等级标准", "hue": "Orange", "lightness": "Lighter"},
+        {"name": "角色权限", "hue": "Purple", "lightness": "Lighter"},
+        {"name": "字段规范", "hue": "Blue", "lightness": "Lighter"},
+        {"name": "拆解原则", "hue": "Green", "lightness": "Lighter"},
+        {"name": "日常维护", "hue": "Gray", "lightness": "Lighter"}
+      ]
+    },
+    {
+      "name": "条目",
+      "type": "text"
+    },
+    {
+      "name": "说明",
+      "type": "text",
+      "description": "详细说明,支持多行"
+    }
+  ],
+  "default_view_config": {
+    "name": "按类别浏览",
+    "type": "grid",
+    "group_by": [{"field": "类别", "desc": false}],
+    "visible_fields": ["序号", "类别", "条目", "说明"]
+  }
+}

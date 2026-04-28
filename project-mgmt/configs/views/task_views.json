@@ -1,0 +1,157 @@
+{
+  "_comment": "任务表视图配置 - 用于批量创建",
+  "views": [
+    {
+      "name": "全部任务(树状浏览)",
+      "type": "grid",
+      "is_primary": true,
+      "group_config": [{"field": "所属项目", "desc": false}],
+      "sort_config": [{"field": "WBS编号", "desc": false}],
+      "_note_primary_field": "飞书 Base 强制把主字段(任务编号)置于第一列,API 无法改变。尝试把任务编号放到数组末尾会被系统自动移回首位。",
+      "visible_fields": [
+        "WBS编号",
+        "任务级别",
+        "任务名称",
+        "模块",
+        "负责人",
+        "状态",
+        "进度",
+        "计划完成日期",
+        "优先级",
+        "协作人",
+        "所属项目",
+        "父任务",
+        "开始日期",
+        "实际完成日期",
+        "交付物",
+        "风险与阻塞",
+        "最近更新",
+        "附件",
+        "任务描述",
+        "项目保密等级",
+        "更新时间",
+        "更新人",
+        "任务编号"
+      ],
+      "_note_field_order": "WBS + 任务级别 + 任务名称 + 模块 打头作为'what'语义组;任务编号虽然在数组末尾,但飞书强制主字段置首位,实际显示仍为首列",
+      "_ui_manual_step": "建议在飞书 UI 里手动把'任务编号'列宽拉到最窄(约 80px),让 WBS 编号和任务名称成为视觉主角"
+    },
+    {
+      "name": "我的任务",
+      "type": "grid",
+      "_purpose": "个人视角 - 今天干啥、本周到期、自己被卡住的",
+      "_ui_note": "需要用户在飞书 UI 里手动加一条动态筛选:负责人 contains 当前用户 OR 协作人 contains 当前用户",
+      "filter": null,
+      "group_config": [{"field": "状态", "desc": false}],
+      "sort_config": [{"field": "计划完成日期", "desc": false}],
+      "visible_fields": [
+        "任务名称",
+        "状态",
+        "计划完成日期",
+        "优先级",
+        "最近更新",
+        "风险与阻塞",
+        "所属项目",
+        "进度"
+      ]
+    },
+    {
+      "name": "里程碑看板",
+      "type": "grid",
+      "filter": {
+        "logic": "and",
+        "conditions": [
+          ["任务级别", "intersects", ["🎯 目标", "🏁 里程碑"]]
+        ]
+      },
+      "sort_config": [{"field": "WBS编号", "desc": false}]
+    },
+    {
+      "name": "阻塞与延期",
+      "type": "grid",
+      "filter": {
+        "logic": "and",
+        "conditions": [
+          ["状态", "intersects", ["阻塞", "延期"]]
+        ]
+      },
+      "sort_config": [{"field": "优先级", "desc": false}]
+    },
+    {
+      "name": "甘特图",
+      "type": "gantt",
+      "_comment": "只按所属项目单层分组,WBS 升序排 - 保持父子相邻的树状顺序。飞书 Gantt 不支持父子行级折叠,这是平台限制,我们不通过按级别分组绕开(那样会破坏父子相邻)。",
+      "timebar": {"start_time": "开始日期", "end_time": "计划完成日期", "title": "任务名称"},
+      "group_config": [{"field": "所属项目", "desc": false}],
+      "sort_config": [{"field": "WBS编号", "desc": false}],
+      "visible_fields": [
+        "WBS编号",
+        "任务级别",
+        "任务名称",
+        "负责人",
+        "状态"
+      ],
+      "_primary_field_forced": "任务编号(主字段)即便不在 visible_fields 里也会被飞书强制显示为第一列。CLI 无法移除,用户可在 UI 里拖窄列宽。",
+      "_ui_manual_steps": [
+        "1) 缩窄任务编号列:鼠标悬停在'任务编号'列边界,向左拖至最窄",
+        "2) 按字段着色:条形图工具栏 → 条形图样式 → 按字段着色 → 选'状态' → 保存",
+        "3) 不看二级工作时:用视图切换到'里程碑看板'(单独视图,只显示 🎯/🏁)"
+      ]
+    },
+    {
+      "name": "状态看板",
+      "type": "kanban",
+      "group_config": [{"field": "状态", "desc": false}]
+    },
+    {
+      "name": "状态异常监控",
+      "type": "grid",
+      "_comment": "监控非叶子任务的完成合规性 — 筛选完成是否合规=违规",
+      "filter": {
+        "logic": "and",
+        "conditions": [
+          ["完成是否合规", "intersects", ["❌ 违规"]]
+        ]
+      },
+      "visible_fields": [
+        "WBS编号",
+        "任务级别",
+        "任务名称",
+        "负责人",
+        "状态",
+        "子任务总数",
+        "子任务已完成数",
+        "完成是否合规",
+        "所属项目",
+        "任务编号"
+      ]
+    },
+    {
+      "_comment": "仅工作区需要 - 模板无模块字段",
+      "_workspace_only": true,
+      "name": "按模块浏览",
+      "type": "grid",
+      "group_config": [{"field": "模块", "desc": false}],
+      "filter": {
+        "logic": "and",
+        "conditions": [
+          ["状态", "disjoint", ["已完成", "已取消"]]
+        ]
+      },
+      "sort_config": [{"field": "WBS编号", "desc": false}],
+      "visible_fields": [
+        "WBS编号",
+        "任务级别",
+        "任务名称",
+        "模块",
+        "负责人",
+        "状态",
+        "进度",
+        "计划完成日期",
+        "优先级",
+        "所属项目",
+        "任务编号"
+      ]
+    }
+  ]
+}

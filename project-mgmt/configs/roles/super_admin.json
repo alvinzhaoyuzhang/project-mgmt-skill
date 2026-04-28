@@ -1,0 +1,25 @@
+{
+  "role_name": "超级管理员",
+  "role_type": "custom_role",
+  "base_rule_map": {"copy": true, "download": true},
+  "table_rule_map": {
+    "项目主表": {
+      "perm": "manage",
+      "view_rule": {"allow_edit": true, "visibility": {"all_visible": true}},
+      "field_rule": {"field_perm_mode": "all_edit"},
+      "record_rule": {"record_operations": ["add", "delete"], "other_record_all_read": true}
+    },
+    "任务表": {
+      "perm": "manage",
+      "view_rule": {"allow_edit": true, "visibility": {"all_visible": true}},
+      "field_rule": {"field_perm_mode": "all_edit"},
+      "record_rule": {"record_operations": ["add", "delete"], "other_record_all_read": true}
+    },
+    "速查卡·字段分级权限": {
+      "perm": "manage",
+      "view_rule": {"allow_edit": true, "visibility": {"all_visible": true}},
+      "field_rule": {"field_perm_mode": "all_edit"},
+      "record_rule": {"record_operations": ["add", "delete"], "other_record_all_read": true}
+    }
+  }
+}

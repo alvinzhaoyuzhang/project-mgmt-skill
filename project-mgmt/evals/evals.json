@@ -1,0 +1,188 @@
+{
+  "skill_name": "project-mgmt",
+  "evals": [
+    {
+      "id": 1,
+      "name": "首装-新手团队搭空间",
+      "scenario": "A · 首次安装",
+      "user_role": "admin",
+      "prompt": "我们公司有个 8 人的产品团队,最近接了 5 个并行的客户交付项目要管,以前一直用 Excel 维护任务清单,现在想用飞书做项目管理但不知道从哪开始。能帮我从 0 搭一套合适的项目管理空间吗?我希望成员只能看到自己项目的任务,不要互相串。",
+      "expected_output": "skill 应该:(1) 路由到场景 A · 首次安装,(2) 跑 wizard 阶段 A 环境检查,(3) 跑阶段 D 问团队规模和项目数(用户已说 8 人 + 5 项目,Claude 应自动推断 Q4=2 / Q5=2 → 推荐多任务表方案 B1),(4) 走完 E/F 命名和复杂度选择,(5) 阶段 G Preview 列清单,(6) 阶段 H 调用 bootstrap.sh 并实时显示进度。整个对话不能让用户看到 B1/B2 这种术语,要用'多任务表方案'这种友好名。绝对不允许 skill 在用户没确认 G Preview 前就实际跑 bootstrap.sh。",
+      "files": [],
+      "assertions": [
+        {
+          "text": "路由到场景 A · 首次安装",
+          "evidence_hint": "transcript 中提到 wizard / 安装向导 / 阶段 A / 首装"
+        },
+        {
+          "text": "根据 8 人 + 5 项目自动推断推荐 B1 多任务表方案",
+          "evidence_hint": "decisions.md 提到推荐'多任务表'方案"
+        },
+        {
+          "text": "不向用户暴露 B1/B2/A 这种内部术语",
+          "evidence_hint": "transcript 中没有出现 B1 / B2 / A 方案 字样作为面向用户的称呼"
+        },
+        {
+          "text": "提及综合看板 / 视图 / 角色等核心组件",
+          "evidence_hint": "transcript 中提到综合看板 OR 视图 OR 3 角色"
+        },
+        {
+          "text": "在 G Preview 之前不实际执行 bootstrap.sh",
+          "evidence_hint": "planned_commands.sh 标记 bootstrap.sh 为只 plan,未真跑"
+        },
+        {
+          "text": "提及调用 scripts/bootstrap.sh 执行",
+          "evidence_hint": "planned_commands.sh 含 bootstrap.sh 命令"
+        },
+        {
+          "text": "提及成员物理隔离机制(每项目独立任务表)",
+          "evidence_hint": "transcript 解释了成员看不到其他项目"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "成员-更新任务进度",
+      "scenario": "C · 日常任务操作(成员视角)",
+      "user_role": "member",
+      "prompt": "我是张三,在项目管理中心·产品研发空间里。我刚把'实现用户登录接口'这个任务做了一半,API 写完了但是单测还没补,联调也没开始。帮我把这个任务进度更新到 60,最近更新填一下,告诉 PM 还差什么。",
+      "expected_output": "skill 应该:(1) 识别身份 = 成员张三 + 空间 = 项目管理中心·产品研发,(2) 路由到场景 C 任务操作,(3) 用 record-search 找'实现用户登录接口'任务,提取 record_id,(4) 列出要改的字段(进度=60,最近更新=按'做完啥/下一步/需要谁'三段式生成),(5) 让张三确认改动,(6) 用 record-batch-update 写入,(7) 回执确认。不应该:在没找到任务时编一个假 record_id,或者跳过用户确认直接改。",
+      "files": [],
+      "assertions": [
+        {
+          "text": "路由到场景 C · 日常任务操作",
+          "evidence_hint": "decisions.md 提到场景 C / 任务操作"
+        },
+        {
+          "text": "用 record-search 找任务(不是 record-list 全量再搜)",
+          "evidence_hint": "planned_commands.sh 含 +record-search"
+        },
+        {
+          "text": "提取 record_id 时使用 data.record_id_list 字段(不是 data.data)",
+          "evidence_hint": "planned_commands.sh 或 transcript 提到 record_id_list"
+        },
+        {
+          "text": "用 record-batch-update 更新",
+          "evidence_hint": "planned_commands.sh 含 +record-batch-update"
+        },
+        {
+          "text": "最近更新字段格式含'做完啥 / 下一步 / 需要谁'三段或类似结构",
+          "evidence_hint": "transcript 中显示要写入的最近更新内容含 API 写完 / 单测 / 联调"
+        },
+        {
+          "text": "不真执行 update(observation 模式遵守)",
+          "evidence_hint": "planned_commands.sh 标记 batch-update 为只 plan"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "PM-跨项目巡检阻塞",
+      "scenario": "C · 日常任务操作(PM 视角)",
+      "user_role": "PM",
+      "prompt": "我是李经理,负责 3 个项目。我现在打开飞书,想看看我所有项目里这周有哪些任务卡住了或者快延期,优先级 P0/P1 的。能帮我列一下吗,顺便看下哪些是同一个负责人卡的(可能资源不够)。",
+      "expected_output": "skill 应该:(1) 识别身份 = PM 李经理,(2) 路由到场景 C / Op-PM1 跨项目状态查询,(3) 从本地缓存 registered_bases.json 拿到李经理负责的项目空间,(4) 对每个空间用 record-list/search 加 filter(优先级 in [P0,P1] AND 状态 in [阻塞,延期] AND 计划完成日期<本周末),(5) 汇总展示并按负责人分组(凸显资源紧张的人),(6) 顺便提示:有没有需要协助处理的(指向 Op-PM2 重新分配)。**不应该**:为查询动作主动改任务字段。",
+      "files": [],
+      "assertions": [
+        {
+          "text": "路由到场景 C · PM 跨项目查询(Op-PM1)",
+          "evidence_hint": "decisions.md 提到 Op-PM1 / 跨项目巡检"
+        },
+        {
+          "text": "意识到要跨多个 Base 查询",
+          "evidence_hint": "transcript 或 planned_commands 显示要查多个空间"
+        },
+        {
+          "text": "filter 包含 优先级=P0/P1 + 状态=阻塞/延期",
+          "evidence_hint": "planned_commands 显示 filter 条件"
+        },
+        {
+          "text": "按负责人分组找资源紧张的人",
+          "evidence_hint": "transcript 提到按负责人分组 OR 同人多任务"
+        },
+        {
+          "text": "不主动改任务(纯查询场景)",
+          "evidence_hint": "planned_commands.sh 没有 +record-batch-update / 写操作"
+        },
+        {
+          "text": "建议 Op-PM2 重新分配作为后续动作",
+          "evidence_hint": "transcript 提到重新分配 / 重排资源"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "加项目-给现有空间加新项目",
+      "scenario": "B · 加新项目",
+      "user_role": "admin/PM",
+      "prompt": "我已经在飞书里建了一个项目管理空间叫'项目管理中心·客户交付',现在公司接了个新单子叫'某银行核心系统升级',要给客户老张当 PM,组员是李雷和韩梅梅,保密等级是 L3 敏感。帮我在这个空间里加上这个新项目。",
+      "expected_output": "skill 应该:(1) 路由到场景 B 加项目,(2) 进入 G+ 子流程 4 题(从用户输入提取已知信息:项目名'某银行核心系统升级' / PM '老张' / 成员 '李雷'+'韩梅梅' / L3),(3) 通过 contact.user.search 验证 3 个人的飞书账号,(4) G+ Preview 列出要做的事 + ⚠️ 明确告知会触发飞书通知给 3 人,(5) 等用户 [1]/[2]/[3] 确认后才执行,(6) 调 new-project.sh 建表 + 建 dashboard,(7) 选 [1] 时分享 Base + 绑角色 + 通知。",
+      "files": [],
+      "assertions": [
+        {
+          "text": "路由到场景 B · 加新项目 G+ 子流程",
+          "evidence_hint": "decisions.md 提到场景 B / G+ / 加项目"
+        },
+        {
+          "text": "从用户输入提取 4 个关键信息(项目名/PM/成员/保密等级)",
+          "evidence_hint": "transcript 复述了:某银行核心系统升级 + 老张 + 李雷+韩梅梅 + L3"
+        },
+        {
+          "text": "用 contact.user.search 验证人员账号",
+          "evidence_hint": "planned_commands.sh 含 contact / user search 类命令"
+        },
+        {
+          "text": "Preview 明确告知飞书通知会触发给 3 人",
+          "evidence_hint": "transcript 含'飞书通知' + 3 人姓名"
+        },
+        {
+          "text": "等用户 [1]/[2]/[3] 选项确认才执行",
+          "evidence_hint": "transcript 显示选项菜单"
+        },
+        {
+          "text": "调用 scripts/new-project.sh 执行",
+          "evidence_hint": "planned_commands.sh 含 new-project.sh"
+        },
+        {
+          "text": "不实际执行(observation 模式)",
+          "evidence_hint": "planned_commands.sh 标记为只 plan"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "故障-role-update 报错",
+      "scenario": "D · 维护排错",
+      "user_role": "admin",
+      "prompt": "我在跑你 skill 的安装向导,跑到最后绑角色那步失败了,报错是 'update role failed: role name cannot be empty'。我重试了好几次都不行。帮我看下怎么办?",
+      "expected_output": "skill 应该:(1) 路由到场景 D 故障排查,(2) 读 troubleshooting.md 第 4.2 节,(3) 解释原因:role-update 是 delta merge,但 role_name + role_type 必须传(即使值不变),(4) 给具体修复命令模板,(5) 提示用户重试,(6) 如果用户跑了仍然失败,引导查 role-get 当前值再合并。**不应该**:让用户重新跑整个 wizard(因为只是这一步出问题,其他都好了)。",
+      "files": [],
+      "assertions": [
+        {
+          "text": "路由到场景 D · 故障排查(troubleshooting.md 4.2)",
+          "evidence_hint": "decisions.md 提到场景 D / troubleshooting"
+        },
+        {
+          "text": "解释根本原因:role-update 是 delta merge",
+          "evidence_hint": "transcript 提到 delta merge 或 部分更新 行为"
+        },
+        {
+          "text": "明确指出 role_name 和 role_type 必须传",
+          "evidence_hint": "transcript 提到 role_name + role_type 必传"
+        },
+        {
+          "text": "给出具体修复命令模板",
+          "evidence_hint": "planned_commands.sh 含 +role-update 完整 --json"
+        },
+        {
+          "text": "不建议用户重跑整个 wizard",
+          "evidence_hint": "transcript 没建议 pm init --reset 或重新跑 bootstrap"
+        },
+        {
+          "text": "建议先 role-get 拿当前值再合并",
+          "evidence_hint": "transcript 提到先 get 再 update / 合并 members"
+        }
+      ]
+    }
+  ]
+}

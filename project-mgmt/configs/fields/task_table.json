@@ -1,0 +1,262 @@
+{
+  "_comment": "任务表字段定义。注意:link 字段需要项目主表已建好;lookup 字段必须最后建",
+  "primary_field": {
+    "name": "任务编号",
+    "type": "auto_number",
+    "style": {
+      "rules": [
+        {"type": "text", "text": "T-"},
+        {"type": "incremental_number", "length": 4}
+      ]
+    },
+    "description": "系统自动编号,唯一标识任务,如 T-0001"
+  },
+  "fields": [
+    {
+      "name": "任务名称",
+      "type": "text",
+      "description": "简短描述任务内容"
+    },
+    {
+      "name": "所属项目",
+      "type": "link",
+      "link_table": "项目主表",
+      "bidirectional": true,
+      "bidirectional_link_field_name": "项目任务",
+      "description": "关联到项目主表,每条任务必须关联一个项目"
+    },
+    {
+      "name": "任务级别",
+      "type": "select",
+      "multiple": false,
+      "description": "分级标准:🎯目标(项目最终成果,1-3个) / 🏁里程碑(关键阶段交付,3-7个) / 📦一级工作(里程碑下主要工作包) / 📋二级工作(叶子任务,1-5天内可完成) / 📌三级工作(仅复杂场景使用)",
+      "options": [
+        {"name": "🎯 目标", "hue": "Red", "lightness": "Light"},
+        {"name": "🏁 里程碑", "hue": "Orange", "lightness": "Light"},
+        {"name": "📦 一级工作", "hue": "Blue", "lightness": "Light"},
+        {"name": "📋 二级工作", "hue": "Blue", "lightness": "Lighter"},
+        {"name": "📌 三级工作", "hue": "Gray", "lightness": "Lighter"}
+      ]
+    },
+    {
+      "name": "父任务",
+      "type": "link",
+      "link_table": "任务表",
+      "bidirectional": true,
+      "bidirectional_link_field_name": "子任务",
+      "description": "指向上一级任务,形成树状结构;顶层(🎯目标)可不填"
+    },
+    {
+      "name": "WBS编号",
+      "type": "text",
+      "description": "层级编号,格式如 1 / 1.1 / 1.1.2;手工维护,建议按父子关系顺序编号"
+    },
+    {
+      "name": "负责人",
+      "type": "user",
+      "multiple": false,
+      "description": "任务唯一负责人;叶子任务必填"
+    },
+    {
+      "name": "协作人",
+      "type": "user",
+      "multiple": true,
+      "description": "参与任务的其他成员"
+    },
+    {
+      "name": "状态",
+      "type": "select",
+      "multiple": false,
+      "options": [
+        {"name": "未开始", "hue": "Gray", "lightness": "Lighter"},
+        {"name": "进行中", "hue": "Blue", "lightness": "Light"},
+        {"name": "已完成", "hue": "Green", "lightness": "Light"},
+        {"name": "阻塞", "hue": "Red", "lightness": "Light"},
+        {"name": "延期", "hue": "Orange", "lightness": "Light"},
+        {"name": "已取消", "hue": "Gray", "lightness": "Standard"}
+      ]
+    },
+    {
+      "name": "进度",
+      "type": "number",
+      "style": {"type": "progress", "percentage": true, "color": "Blue"},
+      "description": "0-100 的完成百分比"
+    },
+    {
+      "name": "优先级",
+      "type": "select",
+      "multiple": false,
+      "options": [
+        {"name": "P0-紧急", "hue": "Red", "lightness": "Light"},
+        {"name": "P1-高", "hue": "Orange", "lightness": "Light"},
+        {"name": "P2-中", "hue": "Blue", "lightness": "Lighter"},
+        {"name": "P3-低", "hue": "Gray", "lightness": "Lighter"}
+      ]
+    },
+    {
+      "name": "开始日期",
+      "type": "datetime",
+      "style": {"format": "yyyy-MM-dd"}
+    },
+    {
+      "name": "计划完成日期",
+      "type": "datetime",
+      "style": {"format": "yyyy-MM-dd"}
+    },
+    {
+      "name": "实际完成日期",
+      "type": "datetime",
+      "style": {"format": "yyyy-MM-dd"}
+    },
+    {
+      "name": "任务描述",
+      "type": "text",
+      "description": "任务具体内容、范围边界、上下文"
+    },
+    {
+      "name": "交付物",
+      "type": "text",
+      "description": "任务完成的可验收产出,如文档链接、代码 PR、演示视频等"
+    },
+    {
+      "name": "风险与阻塞",
+      "type": "text",
+      "description": "当前遇到的问题、风险点、待决事项"
+    },
+    {
+      "name": "最近更新",
+      "type": "text",
+      "description": "成员填报进展用,建议格式:YYYY-MM-DD 完成了XX,下一步计划XX,需要XX支持"
+    },
+    {
+      "name": "附件",
+      "type": "attachment",
+      "description": "任务相关文件:图纸/截图/参考文档等"
+    },
+    {
+      "_comment": "模块字段 — 本字段仅在工作区需要(模板不强制带),一个任务可涉及多个模块,多选",
+      "_workspace_only": true,
+      "name": "模块",
+      "type": "select",
+      "multiple": true,
+      "description": "业务/技术模块(多选)。与一级工作正交:一级工作回答'归谁管在哪阶段',模块回答'涉及什么内容'"
+    },
+    {
+      "name": "更新时间",
+      "type": "updated_at",
+      "style": {"format": "yyyy-MM-dd HH:mm"}
+    },
+    {
+      "name": "更新人",
+      "type": "updated_by"
+    }
+  ],
+  "lookup_fields": [
+    {
+      "_comment": "此字段必须在'所属项目' link 字段和项目主表'保密等级'字段都建好后再建",
+      "name": "项目保密等级",
+      "type": "lookup",
+      "description": "从所属项目自动读取保密等级,用于权限系统条件过滤",
+      "from": "项目主表",
+      "select": "保密等级",
+      "where": {
+        "logic": "and",
+        "conditions": [
+          ["项目名称", "intersects", {"type": "field_ref", "field": "所属项目"}]
+        ]
+      },
+      "aggregate": "raw_value"
+    },
+    {
+      "_comment": "所属项目名称 - 从 link 字段 lookup 出的纯文本,用于 Dashboard per-project filter。link 字段本身不支持 is/contains 过滤,需要这个 text 代理",
+      "name": "所属项目名称",
+      "type": "lookup",
+      "description": "从所属项目 lookup 出的纯文本项目名,用于 Dashboard 过滤(绕开 link 字段 filter 限制)",
+      "from": "项目主表",
+      "select": "项目名称",
+      "where": {
+        "logic": "and",
+        "conditions": [
+          ["项目名称", "intersects", {"type": "field_ref", "field": "所属项目"}]
+        ]
+      },
+      "aggregate": "raw_value"
+    },
+    {
+      "_comment": "聚合子任务进度:非叶子任务的进度参考",
+      "name": "子任务平均进度",
+      "type": "lookup",
+      "description": "所有子任务进度的平均值(自动计算);叶子任务无子任务则为空",
+      "from": "任务表",
+      "select": "进度",
+      "where": {
+        "logic": "and",
+        "conditions": [
+          ["父任务", "intersects", {"type": "field_ref", "field": "任务编号"}]
+        ]
+      },
+      "aggregate": "average"
+    },
+    {
+      "_comment": "子任务总数 - 用于完成合规性判断",
+      "name": "子任务总数",
+      "type": "lookup",
+      "description": "所有子任务数量(自动)",
+      "from": "任务表",
+      "select": "任务编号",
+      "where": {
+        "logic": "and",
+        "conditions": [
+          ["父任务", "intersects", {"type": "field_ref", "field": "任务编号"}]
+        ]
+      },
+      "aggregate": "counta"
+    },
+    {
+      "_comment": "已完成子任务数 - 用于完成合规性判断",
+      "name": "子任务已完成数",
+      "type": "lookup",
+      "description": "状态为已完成的子任务数量(自动)",
+      "from": "任务表",
+      "select": "任务编号",
+      "where": {
+        "logic": "and",
+        "conditions": [
+          ["父任务", "intersects", {"type": "field_ref", "field": "任务编号"}],
+          ["状态", "intersects", {"type": "constant", "value": ["已完成"]}]
+        ]
+      },
+      "aggregate": "counta"
+    }
+  ],
+  "formula_fields": [
+    {
+      "_comment": "完成是否合规 — 监控非叶子任务状态与子任务状态的一致性",
+      "name": "完成是否合规",
+      "type": "formula",
+      "description": "非叶子任务标已完成但有子任务未完成时显示违规;叶子任务显示 N/A",
+      "expression": "IF([任务级别] = \"📋 二级工作\", \"N/A\", IF([状态] = \"已完成\", IF([子任务总数] = [子任务已完成数], \"✅ 合规\", \"❌ 违规\"), \"—\"))"
+    },
+    {
+      "_comment": "任务完成分 - 用于计算项目完成率百分比;Dashboard block 对此字段 AVG 即为完成率%",
+      "name": "任务完成分",
+      "type": "formula",
+      "description": "状态=已完成→100,其他→0;AVG 后得到完成率(0-100)",
+      "expression": "IF([状态] = \"已完成\", 100, 0)"
+    },
+    {
+      "_comment": "到期时段 - 用于 Dashboard 时间压力分布图的 X 轴分组",
+      "name": "到期时段",
+      "type": "formula",
+      "description": "基于计划完成日期分档:已过期/本周到期/下周到期/后续/无 deadline",
+      "expression": "IFS(ISBLANK([计划完成日期]), \"无 deadline\", [计划完成日期] < TODAY(), \"已过期\", [计划完成日期] < TODAY() + 7, \"本周到期\", [计划完成日期] < TODAY() + 14, \"下周到期\", TRUE(), \"后续\")"
+    },
+    {
+      "_comment": "所属里程碑 - 通过链式父追溯每个任务所属的 🏁 里程碑;Dashboard 按里程碑维度聚合时用",
+      "name": "所属里程碑",
+      "type": "formula",
+      "description": "追溯到任务所属的 🏁 里程碑名称(🎯 目标返回未归属);用于 Dashboard group_by",
+      "expression": "IFS([任务级别] = \"🏁 里程碑\", [任务名称], [任务级别] = \"📦 一级工作\", FIRST([父任务].[任务名称]), [任务级别] = \"📋 二级工作\", FIRST([父任务].[父任务].[任务名称]), TRUE(), \"未归属\")"
+    }
+  ]
+}
