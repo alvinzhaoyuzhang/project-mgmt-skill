@@ -28,7 +28,7 @@
 
 ### 0.1 这个工具是什么
 
-「项目管理中心」是一个跑在 OpenClaw 里的 skill,会在你的飞书租户内自动搭建一套**经过验证的项目管理模板**:
+「项目管理中心」是一个跑在 Claude Code / OpenClaw 里的 skill,会在你的飞书租户内自动搭建一套**经过验证的项目管理模板**:
 
 - 标准化的任务表(支持 4 级层次:目标 → 里程碑 → 工作包 → 任务)
 - 综合看板(自动生成进度图表,无需手工配)
@@ -43,20 +43,45 @@
 | 需要 | 说明 |
 |---|---|
 | ✅ 飞书账号 | 个人版/企业版均可 |
-| ✅ OpenClaw 已连接飞书 | 通过飞书机器人扫码授权,你应该已经做过 |
-| ✅ OpenClaw 飞书插件已安装 | 见下方"如何安装飞书插件" |
+| ✅ 飞书 CLI(`lark-cli`)已安装并登录 | 见下方"如何安装飞书 CLI" |
 | 🟡 飞书租户允许建多维表格 | 99% 默认允许,如禁用需联系 IT |
 | 🟡 团队成员的飞书账号 | 可后续添加,首次安装可选 |
 
-#### 如何安装飞书插件
+#### 如何安装飞书 CLI
 
-skill 启动时会自动检测,如果未安装,在 OpenClaw 终端运行:
+`lark-cli` 是飞书官方开源命令行工具(npm 包 `@larksuite/cli`),本 skill 所有脚本都通过它操作飞书。
+
+**🚀 最简单 · 让 AI 替你装(零终端操作,推荐)**
+
+直接对你的 AI 工具(Claude Code / OpenClaw / Cursor / Codex / Trae)说:
 
 ```
-npx -y @larksuite/openclaw-lark install
+帮我安装飞书 CLI:https://open.feishu.cn/document/no_class/mcp-archive/feishu-cli-installation-guide.md
 ```
 
-约 30 秒装好,装好后回到 skill 输入 `r` 重试即可。
+AI 会自动:
+- 跑安装命令(中途问的选项,选**默认 / 创建新应用 / 简体中文**即可)
+- 提示你**重启 AI 工具**(必做)
+- 重启后引导你做飞书授权(浏览器点确认)
+
+全程约 2-3 分钟。
+
+**👨‍💻 备用 · 自己手动装(熟悉终端的开发者)**
+
+```
+# 1. 装(交互式,选"创建新应用")
+npx @larksuite/cli@latest install
+
+# 2. ⚠️ 重启 Claude Code / OpenClaw
+#    漏掉这步是反复装不上的最常见原因
+
+# 3. 浏览器授权
+lark-cli auth login
+```
+
+完成后回 skill 输入 `r` 重试。
+
+> 在 OpenClaw 里使用?OpenClaw 平台自带的"飞书官方插件"是另一回事——它让 OpenClaw 自己能聊飞书话题,但**不能替代** `lark-cli`。本 skill 必须装 `lark-cli`。
 
 ### 0.3 它会创建什么
 
@@ -83,13 +108,13 @@ skill 会在你的飞书租户内创建:
 
 ### 1.1 启动安装向导
 
-在 OpenClaw 内输入:
+在 Claude Code / OpenClaw 内输入:
 
 ```
 pm init
 ```
 
-或者直接对 OpenClaw 说:**"我想用项目管理 skill 建一个空间"**。
+或者直接说:**"我想用项目管理 skill 建一个空间"**。
 
 ### 1.2 阶段 A · 欢迎 + 环境检查
 
@@ -120,7 +145,7 @@ pm init
 🔍  正在检查环境...
 
    ✅  网络可达 feishu.cn
-   ✅  OpenClaw 飞书插件 已安装(v1.0.18)
+   ✅  飞书 CLI(lark-cli)已安装(v1.0.9)
    ✅  飞书已登录:小王  /  你的租户名
 
 ⚠️  接下来会用此账号在飞书内创建表格,
@@ -130,9 +155,9 @@ pm init
 ```
 
 **异常情况**:
-- 飞书插件未安装 → 显示安装命令,装好后输 `r` 重试
-- 飞书未登录 → 提示去 OpenClaw 重新连接飞书,完成后回来 `r`
-- 想换账号 → 提示去 OpenClaw 切换绑定,完成后 `r`
+- 飞书 CLI 未安装 → 显示三步:`npx @larksuite/cli@latest install` → **重启 AI 工具** → `lark-cli auth login`,完成后输 `r` 重试
+- 飞书未登录 → 提示跑 `lark-cli auth login` 完成授权,回来 `r`
+- 想换账号 → 跑 `lark-cli auth logout` 后再 `lark-cli auth login`,回来 `r`
 
 ### 1.3 阶段 C · 路径分流(自动)
 
@@ -950,9 +975,9 @@ pm verify --base <空间名>
 
 #### "401 Unauthorized" 或 "token 失效"
 
-**原因**:OpenClaw 的飞书登录 token 过期了。
+**原因**:`lark-cli` 的飞书登录 token 过期了。
 
-**修复**:回 OpenClaw,通过飞书机器人重新连接 → 重试 skill。
+**修复**:在终端跑 `lark-cli auth login`,完成浏览器授权后,回 skill 重试。
 
 #### "403 Forbidden" 或 "无权限"
 
@@ -1050,15 +1075,27 @@ pm export --base <空间名> --output backup.zip
 
 ### 6.10 跑命令时报 "lark-cli: command not found"
 
-**原因**:OpenClaw 的飞书插件没装好。
+**原因**:飞书 CLI(`lark-cli`)未安装,或装完后 **AI 工具没重启**,PATH 上找不到。
 
-**修复**:
+**最快修复 · 一句话让 AI 替你装**:
 
 ```
-npx -y @larksuite/openclaw-lark install
+帮我安装飞书 CLI:https://open.feishu.cn/document/no_class/mcp-archive/feishu-cli-installation-guide.md
 ```
 
-装好后回 OpenClaw 重试 skill。
+把这一行复制粘贴给 Claude Code / OpenClaw,它会自动装、提示你重启、引导授权,全程不用碰终端。
+
+**或者手动装**(熟悉终端的同学):
+
+```
+npx @larksuite/cli@latest install   # 1. 装
+# 2. ⚠️ 重启 AI 工具(漏掉这步=反复装不上)
+lark-cli auth login                   # 3. 授权
+```
+
+完成后回 skill 重试。
+
+> 注意:如果你装的是 OpenClaw 的"飞书官方插件",**那不是 lark-cli**——本 skill 不依赖 OpenClaw 插件,必须装 `lark-cli`。
 
 ### 6.11 我的飞书是"个人版"(非企业租户),能用吗?
 

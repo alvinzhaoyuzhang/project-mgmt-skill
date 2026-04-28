@@ -26,6 +26,19 @@
       "description": "关联到项目主表,每条任务必须关联一个项目"
     },
     {
+      "_comment": "由 skill 自动从所属项目的'保密等级'同步过来。原本想用 lookup 字段实现自动继承,但飞书角色权限 filter 不支持 lookup 字段(详见 references/feishu-permission-limits.md),只能改用 select 字段 + skill 写入时主动同步。同步触发点:① 新建任务 ② 改任务的'所属项目' ③ 用户跑 pm sync-secrecy 命令(在改了项目'保密等级'后批量回写)",
+      "name": "任务保密等级",
+      "type": "select",
+      "multiple": false,
+      "description": "由 skill 自动从所属项目的'保密等级'同步;请勿手动修改(改了下次 cascade 时会被覆盖)。用于角色权限过滤",
+      "options": [
+        {"name": "L1 公开", "hue": "Green", "lightness": "Lighter"},
+        {"name": "L2 常规", "hue": "Blue", "lightness": "Light"},
+        {"name": "L3 敏感", "hue": "Orange", "lightness": "Light"},
+        {"name": "L4 机密", "hue": "Red", "lightness": "Light"}
+      ]
+    },
+    {
       "name": "任务级别",
       "type": "select",
       "multiple": false,
@@ -152,21 +165,6 @@
     }
   ],
   "lookup_fields": [
-    {
-      "_comment": "此字段必须在'所属项目' link 字段和项目主表'保密等级'字段都建好后再建",
-      "name": "项目保密等级",
-      "type": "lookup",
-      "description": "从所属项目自动读取保密等级,用于权限系统条件过滤",
-      "from": "项目主表",
-      "select": "保密等级",
-      "where": {
-        "logic": "and",
-        "conditions": [
-          ["项目名称", "intersects", {"type": "field_ref", "field": "所属项目"}]
-        ]
-      },
-      "aggregate": "raw_value"
-    },
     {
       "_comment": "所属项目名称 - 从 link 字段 lookup 出的纯文本,用于 Dashboard per-project filter。link 字段本身不支持 is/contains 过滤,需要这个 text 代理",
       "name": "所属项目名称",

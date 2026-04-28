@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
 # Bootstrap: 从零创建一个"项目管理中心"工作区 Base
 #
-# 前置:OpenClaw 已装飞书插件 (lark-cli) 并已登录
+# 前置:已装飞书 CLI (lark-cli, 即 npm 包 @larksuite/cli) 并已 auth login
 # 用法:bash <skill>/scripts/bootstrap.sh "项目管理中心·业务方向"
 # 输出:新 Base 的 base_token 和 URL
+#
+# 幂等说明:
+#   - 视图 / dashboard 步骤已加幂等检测(同名存在则复用,不会因 conflict 中止)
+#   - base / table / field / role 创建**不幂等**:中途失败时,推荐删除半成品 Base 重新跑
+#   - 字段 / 角色创建失败时,会显示完整 lark-cli 错误明细(stderr + stdout JSON)
 
 set -euo pipefail
 
@@ -44,12 +49,20 @@ for f in json.load(sys.stdin)['data']['fields']:
 
 echo "==> 建项目主表其他字段"
 python3 << EOF
-import json, subprocess
+import json, subprocess, sys
 with open('$SKILL_ROOT/configs/fields/project_table.json') as f:
     cfg = json.load(f)
 for field in cfg['fields']:
     payload = {k:v for k,v in field.items() if not k.startswith('_')}
-    subprocess.run(['lark-cli','base','+field-create','--base-token','$BASE_TOKEN','--table-id','$DEFAULT_TBL','--json',json.dumps(payload, ensure_ascii=False)], check=True)
+    r = subprocess.run(
+        ['lark-cli','base','+field-create','--base-token','$BASE_TOKEN','--table-id','$DEFAULT_TBL','--json',json.dumps(payload, ensure_ascii=False)],
+        capture_output=True, text=True
+    )
+    if r.returncode != 0:
+        sys.stderr.write(f"\n❌ 创建字段 '{field['name']}' 失败 (项目主表)\n")
+        if r.stderr.strip(): sys.stderr.write(f"   stderr:\n{r.stderr}\n")
+        if r.stdout.strip(): sys.stderr.write(f"   stdout:\n{r.stdout}\n")
+        sys.exit(1)
     print(f"  created: {field['name']}")
 EOF
 
@@ -64,34 +77,58 @@ lark-cli base +field-update --base-token $BASE_TOKEN --table-id $TASK_TBL --fiel
 
 echo "==> 建任务表其他字段(不含 lookup)"
 python3 << EOF
-import json, subprocess
+import json, subprocess, sys
 with open('$SKILL_ROOT/configs/fields/task_table.json') as f:
     cfg = json.load(f)
 for field in cfg['fields']:
     payload = {k:v for k,v in field.items() if not k.startswith('_')}
-    subprocess.run(['lark-cli','base','+field-create','--base-token','$BASE_TOKEN','--table-id','$TASK_TBL','--json',json.dumps(payload, ensure_ascii=False)], check=True)
+    r = subprocess.run(
+        ['lark-cli','base','+field-create','--base-token','$BASE_TOKEN','--table-id','$TASK_TBL','--json',json.dumps(payload, ensure_ascii=False)],
+        capture_output=True, text=True
+    )
+    if r.returncode != 0:
+        sys.stderr.write(f"\n❌ 创建字段 '{field['name']}' 失败 (任务表)\n")
+        if r.stderr.strip(): sys.stderr.write(f"   stderr:\n{r.stderr}\n")
+        if r.stdout.strip(): sys.stderr.write(f"   stdout:\n{r.stdout}\n")
+        sys.exit(1)
     print(f"  created: {field['name']}")
 EOF
 
 echo "==> 建任务表 lookup 字段"
 python3 << EOF
-import json, subprocess
+import json, subprocess, sys
 with open('$SKILL_ROOT/configs/fields/task_table.json') as f:
     cfg = json.load(f)
 for field in cfg.get('lookup_fields', []):
     payload = {k:v for k,v in field.items() if not k.startswith('_')}
-    subprocess.run(['lark-cli','base','+field-create','--base-token','$BASE_TOKEN','--table-id','$TASK_TBL','--i-have-read-guide','--json',json.dumps(payload, ensure_ascii=False)], check=True)
+    r = subprocess.run(
+        ['lark-cli','base','+field-create','--base-token','$BASE_TOKEN','--table-id','$TASK_TBL','--i-have-read-guide','--json',json.dumps(payload, ensure_ascii=False)],
+        capture_output=True, text=True
+    )
+    if r.returncode != 0:
+        sys.stderr.write(f"\n❌ 创建 lookup 字段 '{field['name']}' 失败\n")
+        if r.stderr.strip(): sys.stderr.write(f"   stderr:\n{r.stderr}\n")
+        if r.stdout.strip(): sys.stderr.write(f"   stdout:\n{r.stdout}\n")
+        sys.exit(1)
     print(f"  created lookup: {field['name']}")
 EOF
 
 echo "==> 建任务表 formula 字段"
 python3 << EOF
-import json, subprocess
+import json, subprocess, sys
 with open('$SKILL_ROOT/configs/fields/task_table.json') as f:
     cfg = json.load(f)
 for field in cfg.get('formula_fields', []):
     payload = {k:v for k,v in field.items() if not k.startswith('_')}
-    subprocess.run(['lark-cli','base','+field-create','--base-token','$BASE_TOKEN','--table-id','$TASK_TBL','--i-have-read-guide','--json',json.dumps(payload, ensure_ascii=False)], check=True)
+    r = subprocess.run(
+        ['lark-cli','base','+field-create','--base-token','$BASE_TOKEN','--table-id','$TASK_TBL','--i-have-read-guide','--json',json.dumps(payload, ensure_ascii=False)],
+        capture_output=True, text=True
+    )
+    if r.returncode != 0:
+        sys.stderr.write(f"\n❌ 创建 formula 字段 '{field['name']}' 失败\n")
+        if r.stderr.strip(): sys.stderr.write(f"   stderr:\n{r.stderr}\n")
+        if r.stdout.strip(): sys.stderr.write(f"   stdout:\n{r.stdout}\n")
+        sys.exit(1)
     print(f"  created formula: {field['name']}")
 EOF
 
@@ -102,12 +139,20 @@ CHEAT_PRIMARY=$(lark-cli base +field-list --base-token $BASE_TOKEN --table-id $C
 lark-cli base +field-update --base-token $BASE_TOKEN --table-id $CHEAT_TBL --field-id $CHEAT_PRIMARY \
   --json '{"name":"序号","type":"auto_number","style":{"rules":[{"type":"incremental_number","length":3}]}}' > /dev/null
 python3 << EOF
-import json, subprocess
+import json, subprocess, sys
 with open('$SKILL_ROOT/configs/fields/cheat_card_table.json') as f:
     cfg = json.load(f)
 for field in cfg['fields']:
     payload = {k:v for k,v in field.items() if not k.startswith('_')}
-    subprocess.run(['lark-cli','base','+field-create','--base-token','$BASE_TOKEN','--table-id','$CHEAT_TBL','--json',json.dumps(payload, ensure_ascii=False)], check=True)
+    r = subprocess.run(
+        ['lark-cli','base','+field-create','--base-token','$BASE_TOKEN','--table-id','$CHEAT_TBL','--json',json.dumps(payload, ensure_ascii=False)],
+        capture_output=True, text=True
+    )
+    if r.returncode != 0:
+        sys.stderr.write(f"\n❌ 创建字段 '{field['name']}' 失败 (速查卡表)\n")
+        if r.stderr.strip(): sys.stderr.write(f"   stderr:\n{r.stderr}\n")
+        if r.stdout.strip(): sys.stderr.write(f"   stdout:\n{r.stdout}\n")
+        sys.exit(1)
 EOF
 
 echo "==> 填充速查卡数据"
@@ -116,11 +161,34 @@ echo "==> 填充速查卡数据"
 echo "==> 启用高级权限"
 lark-cli base +advperm-enable --base-token $BASE_TOKEN > /dev/null
 
-echo "==> 创建 3 个角色"
+echo "==> 校验 3 个角色配置(预防 lookup/formula/link 等字段误用在 filter)"
 for ROLE_FILE in $SKILL_ROOT/configs/roles/super_admin.json $SKILL_ROOT/configs/roles/project_manager.json $SKILL_ROOT/configs/roles/project_member.json; do
-  lark-cli base +role-create --base-token $BASE_TOKEN --json "$(cat $ROLE_FILE)" > /dev/null
-  echo "    role created from: $ROLE_FILE"
+  python3 $SKILL_ROOT/scripts/_validate_role.py "$ROLE_FILE" || {
+    echo "❌ 角色校验失败,bootstrap 中止。请按上方提示修复对应 JSON 后重试。"
+    exit 1
+  }
 done
+
+echo "==> 创建 3 个角色"
+python3 << EOF
+import json, subprocess, sys, os
+SKILL_ROOT = "$SKILL_ROOT"
+BASE_TOKEN = "$BASE_TOKEN"
+for rf in ["configs/roles/super_admin.json","configs/roles/project_manager.json","configs/roles/project_member.json"]:
+    full = os.path.join(SKILL_ROOT, rf)
+    with open(full, encoding="utf-8") as f:
+        d = json.load(f)
+    cleaned = {k: v for k, v in d.items() if not k.startswith("_")}
+    r = subprocess.run(
+        ["lark-cli","base","+role-create","--base-token",BASE_TOKEN,
+         "--json", json.dumps(cleaned, ensure_ascii=False)],
+        capture_output=True, text=True
+    )
+    if r.returncode != 0:
+        sys.stderr.write(f"❌ 创建角色 {rf} 失败:\n{r.stderr}\n")
+        sys.exit(1)
+    print(f"    ✅ role created: {rf}")
+EOF
 
 echo "==> 建项目主表视图"
 python3 $SKILL_ROOT/scripts/_apply_views.py \

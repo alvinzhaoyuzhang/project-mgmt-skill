@@ -2,32 +2,72 @@
 
 > 当用户遇到错误时读这个文件。按错误现象索引,给出诊断 + 修复路径。
 
-## 1. 飞书登录 / 插件类
+## 1. 飞书 CLI / 登录类
 
 ### 1.1 `lark-cli: command not found`
 
-**原因**:OpenClaw 飞书插件未安装。
+**原因**:飞书 CLI 未安装,或装完后 AI 工具没重启,系统 PATH 上找不到 `lark-cli` 命令。
+
+#### 修复方式 A · 推荐:让 AI 替用户装(零终端操作)
+
+skill 可以**主动**引导:
+
+> "我注意到飞书 CLI 还没装,我帮你装,大约 2-3 分钟,你不用碰终端。开始吗?"
+
+用户同意后,skill 走以下步骤:
+
+1. **WebFetch 官方安装指南**(或直接 Bash 跑 npx,二选一):
+   ```
+   https://open.feishu.cn/document/no_class/mcp-archive/feishu-cli-installation-guide.md
+   ```
+2. **执行 Bash 安装**:`npx @larksuite/cli@latest install`
+   - 中途会问应用配置 → 默认"**创建新应用**" + 语言"**简体中文**"
+3. **明确告知用户重启**:"装好了。现在请你**重启 Claude Code / OpenClaw**,然后重新进来,我再帮你做剩下的。"
+   - 这步**绝对不能跳过** — 漏掉重启是用户反复装不上的最常见原因。
+4. 用户重启后,再 Bash 跑 `lark-cli auth login`,引导用户在浏览器中确认。
+
+#### 修复方式 B · 给老手用户的"魔法咒语"
+
+如果用户是想自己掌控的开发者,告诉 ta 这一句直接发给 AI 工具就行:
+
+```
+帮我安装飞书 CLI:https://open.feishu.cn/document/no_class/mcp-archive/feishu-cli-installation-guide.md
+```
+
+AI 会按上面方式 A 的步骤跑。
+
+#### 修复方式 C · 纯手动(终端老用户)
+
+```bash
+npx @larksuite/cli@latest install   # 1. 装(交互式)
+# 2. 重启 AI 工具
+lark-cli auth login                  # 3. 授权
+```
+
+---
+
+> 提示:`lark-cli` 是飞书官方开源 CLI(npm 包 `@larksuite/cli`),与 OpenClaw 的"飞书官方插件"是两码事——OpenClaw 插件是平台自己用的,本 skill 不依赖。
+
+### 1.2 `flightcheck failed: 飞书未登录` / `lark-cli auth status` 报未登录
+
+**原因**:`lark-cli` 的 token 过期、被清除,或还没登录过。
 
 **修复**:让用户跑
 
 ```bash
-npx -y @larksuite/openclaw-lark install
+lark-cli auth login
 ```
 
-约 30 秒装好。完成后在 skill 内输 `r` 重试。
-
-### 1.2 `flightcheck failed: 飞书未登录`
-
-**原因**:OpenClaw 通常自动保持登录,出现这条说明 token 过期或切换过账号未重连。
-
-**修复**:让用户回到 OpenClaw,通过飞书机器人重新连接,完成后输 `r` 重试。
+按提示在浏览器中确认授权。完成后输 `r` 重试。
 
 ### 1.3 想切换飞书账号
 
-skill 内**无法直接切**(OpenClaw 飞书插件托管登录态)。
-让用户:
-1. 回到 OpenClaw,通过飞书机器人重新绑定其他账号
-2. 输 `r` 重试 skill
+```bash
+lark-cli auth logout
+lark-cli auth login   # 用另一个账号登录
+```
+
+完成后输 `r` 重试 skill。
 
 ## 2. 网络类
 

@@ -27,29 +27,78 @@
 
 ### 前置条件
 
-- ✅ 飞书账号(企业版或国际版)
-- ✅ 已安装 [Claude Code](https://claude.com/claude-code) 或 OpenClaw
-- ✅ 已安装飞书插件:
-  ```bash
-  npx -y @larksuite/openclaw-lark install
-  ```
-- ✅ 飞书账号已与 Claude Code / OpenClaw 连接
+1. **飞书账号**(企业版或国际版)
+
+2. **飞书 CLI(`lark-cli`)** — 必装,本 skill 所有脚本都通过它操作飞书
+
+   **🚀 推荐方式 · 让 AI 替你装(零终端操作)**
+
+   直接把下面这一句**复制粘贴**给你的 AI 工具(Claude Code / OpenClaw / Cursor / Codex / Trae 都可以):
+
+   ```
+   帮我安装飞书 CLI:https://open.feishu.cn/document/no_class/mcp-archive/feishu-cli-installation-guide.md
+   ```
+
+   AI 会:
+   - 自动跑安装命令(中途可能问 1-2 个选项,选**默认 / 创建新应用**即可)
+   - 提示你**重启 AI 工具**(必须,否则 skill 找不到 lark-cli)
+   - 重启后引导你跑 `lark-cli auth login`,在浏览器里点确认
+
+   全流程约 2-3 分钟,**完全不用碰终端**。
+
+   <details>
+   <summary>👨‍💻 备用方式 · 自己手动装(适合熟悉终端的开发者)</summary>
+
+   ```bash
+   # 1. 装 CLI(交互式,选"创建新应用")
+   npx @larksuite/cli@latest install
+
+   # 2. ⚠️ 重启 Claude Code / OpenClaw
+
+   # 3. 浏览器授权
+   lark-cli auth login
+   ```
+   </details>
+
+   > 飞书 CLI 是飞书官方开源的命令行工具([larksuite/cli](https://github.com/larksuite/cli))。
+   > 它**不是** OpenClaw 的"飞书官方插件"——后者是 OpenClaw 平台用来响应飞书相关聊天请求的,与本 skill 无关。
+
+3. **Agent 运行环境**(任选其一)
+
+   - [Claude Code](https://claude.com/claude-code) — 装好即可
+   - OpenClaw — 装好即可;如已装"飞书官方插件",平台自己也能聊飞书话题(对本 skill 无影响,锦上添花)
 
 ### 1. 安装 skill
 
-**方式 A · 从打包文件安装(推荐)**:
+**方式 A · 从打包文件安装(推荐给团队成员)**:
 
 ```bash
 # 下载最新发布的 .skill 文件,然后:
 unzip -o project-mgmt.skill -d ~/.claude/skills/
 ```
 
-**方式 B · 从源码安装**:
+装完**重启 Claude Code / OpenClaw**让 skill 生效。
+
+**方式 B · 从源码安装(推荐给开发者 / 想跟最新主干)**:
 
 ```bash
-git clone https://github.com/<your-org>/project-mgmt-skill.git
+git clone https://github.com/alvinzhaoyuzhang/project-mgmt-skill.git
 ln -s "$(pwd)/project-mgmt-skill/project-mgmt" ~/.claude/skills/project-mgmt
 ```
+
+### 如何升级到新版本
+
+每个版本的 [Release Notes](https://github.com/alvinzhaoyuzhang/project-mgmt-skill/releases) 顶部会标注"升级类型",按提示操作即可:
+
+| 升级类型 | 含义 | 操作 |
+|---|---|---|
+| 🟢 **安全更新**(仅改文档措辞 / 修小 bug) | 无新增 / 无删除文件 | `unzip -o project-mgmt.skill -d ~/.claude/skills/` 覆盖即可,然后重启 AI 工具 |
+| 🟡 **结构更新**(新增 / 删除 / 重命名文件) | `unzip -o` 不会删除已不存在的旧文件,可能残留 | **先删旧再解压**:`rm -rf ~/.claude/skills/project-mgmt && unzip project-mgmt.skill -d ~/.claude/skills/` |
+| 🔴 **元数据更新**(改了 SKILL.md 的 name / description) | AI 工具会缓存元数据 | 解压后**必须重启** AI 工具,缓存才会刷新 |
+
+**源码安装(方式 B)的用户**:`git pull` + 重启 AI 工具即可,无视上表。
+
+> **本次发版属于哪一类?** 看 Release Notes 第一行的 emoji 标识。如未标注,默认按 🟡 处理(最稳妥)。
 
 ### 2. 第一次使用
 
@@ -61,7 +110,7 @@ ln -s "$(pwd)/project-mgmt-skill/project-mgmt" ~/.claude/skills/project-mgmt
 
 skill 会自动:
 
-1. 检查环境(网络 / 飞书插件 / 登录态)
+1. 检查环境(网络 / `lark-cli` 就位 / 登录态)
 2. 问 4 个关键问题(团队规模 / 项目数 / 业务方向 / 复杂度)
 3. 推荐合适的架构方案(用户友好语言展示,不暴露内部代号)
 4. **Preview 给你确认**
@@ -191,7 +240,7 @@ project-mgmt/
 ### 本地修改 + 调试
 
 ```bash
-git clone https://github.com/<your-org>/project-mgmt-skill.git
+git clone https://github.com/alvinzhaoyuzhang/project-mgmt-skill.git
 cd project-mgmt-skill
 
 # 软链接到 Claude Code skills 目录(改源码自动同步)
@@ -236,11 +285,11 @@ cd $SKILL_CREATOR && python3 -m scripts.package_skill <path/to/project-mgmt>
 
 - [Claude Code](https://claude.com/claude-code) · 提供 skill 框架
 - [skill-creator](https://github.com/anthropics/skills) · 提供打包标准
-- 飞书 [lark-cli](https://github.com/larksuite/openclaw-lark) · 提供 Base 操作能力
+- 飞书 [lark-cli](https://github.com/larksuite/cli) · 提供 Base / Drive 等飞书底层操作能力
 
 ## 联系
 
-- GitHub Issues:`<your-repo>/issues`
+- GitHub Issues:https://github.com/alvinzhaoyuzhang/project-mgmt-skill/issues
 - 反馈群:扫码加入(后续提供)
 
 ---

@@ -1,4 +1,5 @@
 {
+  "_warning_filter_field_types": "⚠️ 飞书角色 filter_rules 不支持以下字段类型:lookup / formula / link(单向或双向) / auto_number / created_time / modified_time / created_by / updated_by / 双向关联。如需基于这些字段做权限过滤,改造成 select / text / number 等基础字段,由 skill 写入时主动同步。详见 references/feishu-permission-limits.md。bootstrap.sh 在创建角色前会跑 _validate_role.py 自动校验。",
   "role_name": "项目成员",
   "role_type": "custom_role",
   "base_rule_map": {"copy": false, "download": false},
@@ -35,7 +36,7 @@
         "read_filter_rule_group": {
           "conjunction": "or",
           "filter_rules": [
-            {"conjunction": "and", "filters": [{"field_name": "项目保密等级", "operator": "contains", "filter_values": ["L1 公开", "L2 常规"]}]},
+            {"conjunction": "and", "filters": [{"field_name": "任务保密等级", "operator": "contains", "filter_values": ["L1 公开", "L2 常规"]}]},
             {"conjunction": "and", "filters": [{"field_name": "负责人", "operator": "contains"}]},
             {"conjunction": "and", "filters": [{"field_name": "协作人", "operator": "contains"}]}
           ]

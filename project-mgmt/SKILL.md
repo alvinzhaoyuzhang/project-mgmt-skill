@@ -9,7 +9,7 @@ metadata:
 
 # 飞书项目管理工作区 · 安装与维护
 
-> **前置条件**:OpenClaw 已装飞书插件 (`lark-cli`),用户已登录飞书账号。
+> **前置条件**:已装飞书 CLI(`lark-cli`,即 npm 包 `@larksuite/cli`)并完成 `lark-cli auth login`。在 Claude Code 和 OpenClaw 内使用本 skill 都需要此前置(OpenClaw 自带的"飞书官方插件"是另一回事,本 skill 不依赖)。
 > **底层依赖**:本 skill 通过 `lark-cli base/drive` 命令操作飞书,**不写裸 API**。
 
 ## 1. 何时使用本 skill
@@ -36,14 +36,30 @@ metadata:
 执行任何写飞书操作前,跑过下面检查清单:
 
 ```bash
-# 1. 飞书插件就位
-lark-cli --version  # 期望 ≥ 1.0.18
+# 1. 飞书 CLI 就位
+lark-cli --version  # 期望 ≥ 1.0.9
 
-# 2. 用户已登录(skill 应假设已登录;未登录时引导用户去 OpenClaw 重新连接)
-lark-cli auth whoami
+# 2. 用户已登录(skill 应假设已登录;未登录时引导用户跑 lark-cli auth login)
+lark-cli auth status
 ```
 
-**不要**在 SKILL.md 主流程里 OAuth 用户 — OpenClaw 的飞书插件已托管登录,例外路径由它自己处理(详情见 `references/troubleshooting.md` 第 1 节)。
+**不要**在 SKILL.md 主流程里 OAuth 用户 — 登录通过 `lark-cli auth login` 由用户自行完成,例外路径见 `references/troubleshooting.md` 第 1 节。
+
+### 2.1 lark-cli 未装时的自动安装引导
+
+如果 `lark-cli --version` 失败(`command not found`),**不要直接报错让用户卡死**——主动引导:
+
+1. **告知用户**:"我注意到飞书 CLI 还没装。我可以帮你装,大约 2-3 分钟,全程不用碰终端。"
+2. **优先方式 — 让 AI 自己跑**:用 WebFetch 拉这个官方安装指南并按步执行:
+   ```
+   https://open.feishu.cn/document/no_class/mcp-archive/feishu-cli-installation-guide.md
+   ```
+   或直接用 Bash 跑 `npx @larksuite/cli@latest install`(交互式,默认"创建新应用" + 简体中文)。
+3. **关键提醒(必说)**:"装完后**必须重启 AI 工具**(Claude Code / OpenClaw),否则 skill 还是会报 lark-cli: command not found。"
+4. **重启后再回来**:让用户重启完后重新触发 skill,你再跑 `lark-cli auth login`(也是 Bash 或让用户跑)完成飞书授权。
+5. **完整指引详见** `references/troubleshooting.md` 第 1.1 节。
+
+> 给小白用户的"魔法咒语"(可让他们自己粘贴):**"帮我安装飞书 CLI:https://open.feishu.cn/document/no_class/mcp-archive/feishu-cli-installation-guide.md"**
 
 ## 3. 主流程 · 场景路由
 
@@ -159,7 +175,7 @@ bash $SKILL_ROOT/scripts/new-project.sh <workspace-base-token> "<项目名>"
 
 ### 6.4 操作通用流程(给 skill 看)
 
-1. **识别用户身份**:`lark-cli auth whoami` → 拿当前用户 open_id
+1. **识别用户身份**:`lark-cli auth status` → 解析 JSON 里的 `userOpenId`
 2. **识别项目上下文**:用户没明确说哪个项目时,看 `~/.pm-skill/registered_bases.json` 默认空间;多项目时让用户指明
 3. **找任务**:用户说的是任务名(模糊)→ `+record-search` 拿候选 → 多个匹配时让用户选
 4. **改字段**:确认改什么 → preview → `+record-batch-update` 写入
@@ -275,6 +291,7 @@ skill **写飞书数据**,误操作不可逆。以下原则不可违反:
 | [references/member-daily-guide.md](references/member-daily-guide.md) | 成员每日工作流 / 进展填报格式 | 场景 C 用户问"我该做什么" |
 | [references/maintenance-ops.md](references/maintenance-ops.md) | 12 个维护操作(加字段/归档/升级 schema 等) | 场景 D 维护时 |
 | [references/troubleshooting.md](references/troubleshooting.md) | 13 类常见故障 + 修复路径 | 场景 D 排错时 |
+| [references/feishu-permission-limits.md](references/feishu-permission-limits.md) | 飞书角色权限规则限制速查表(哪些字段类型不能用在 filter) | 改 role JSON / 设计权限规则前 |
 
 ## 10. Scripts 索引
 
@@ -291,6 +308,8 @@ skill 通过 Bash 调用以下脚本完成实际飞书操作:
 | `scripts/risk_check.py <base> <项目名>` | 风险预警(严重/关注/临期/资源紧张) | 场景 G · 风险诉求 |
 | `scripts/retrospective.py <base> <项目名>` | 项目复盘报告 | 场景 G · 项目结束 |
 | `scripts/_report_helpers.py` | 三个 report 脚本共用 helper | 内部 |
+| `scripts/_validate_role.py <role_json>` | 角色配置预校验,拦截 lookup/formula/link 字段误用在 filter | 在 bootstrap.sh 执行 role-create 前自动调用 |
+| `scripts/_sync_secrecy.py --base-token X --project-name Y` | cascade 项目「保密等级」到该项目所有任务的「任务保密等级」 | 用户改了项目保密等级后(场景 D · Op-PM6) |
 
 ## 11. configs/ 目录(skill 自带数据)
 
@@ -310,7 +329,7 @@ skill 通过 Bash 调用以下脚本完成实际飞书操作:
 
 | 报错 / 现象 | 原因 | 解决 |
 |---|---|---|
-| `lark-cli: command not found` | 飞书插件未装 | 让用户跑 `npx -y @larksuite/openclaw-lark install` |
+| `lark-cli: command not found` | 飞书 CLI 未装 / 装完未重启 | **主动 offer 帮装**:"帮我安装飞书 CLI:https://open.feishu.cn/document/no_class/mcp-archive/feishu-cli-installation-guide.md" → Bash 跑 `npx @larksuite/cli@latest install` → 让用户**重启 AI 工具** → `lark-cli auth login`。详见 §2.1 + troubleshooting.md §1.1 |
 | `Permission denied [99991679]` 调用 `+base-create` | 用户飞书权限不足 | 联系飞书管理员开通"多维表格"权限 |
 | `Required.search_fields` | record-search 没传 search_fields | 改用 `+record-list` 或加 `--json '{"keyword":"X","search_fields":["Y"]}'` |
 | 字段冲突(role_name cannot be empty) | role-update delta 必须含 role_name + role_type | 加这两个字段(用 role-get 拿当前值) |

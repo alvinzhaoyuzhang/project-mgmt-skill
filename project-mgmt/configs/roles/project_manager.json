@@ -1,4 +1,5 @@
 {
+  "_warning_filter_field_types": "⚠️ 飞书角色 filter_rules 不支持以下字段类型:lookup / formula / link(单向或双向) / auto_number / created_time / modified_time / created_by / updated_by / 双向关联。如需基于这些字段做权限过滤,改造成 select / text / number 等基础字段,由 skill 写入时主动同步。详见 references/feishu-permission-limits.md。bootstrap.sh 在创建角色前会跑 _validate_role.py 自动校验。",
   "role_name": "项目经理",
   "role_type": "custom_role",
   "base_rule_map": {"copy": false, "download": true},

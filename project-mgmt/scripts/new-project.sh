@@ -9,10 +9,16 @@
 #   5. 建综合看板·<项目名>(从 dashboard_template.json 替换占位)
 #
 # 用法:
-#   bash scripts/new-project.sh <workspace-base-token> <project-name>
+#   bash scripts/new-project.sh <workspace-base-token> <project-name> [secrecy-level]
+#
+# secrecy-level(可选):
+#   "L1 公开" / "L2 常规"(默认) / "L3 敏感" / "L4 机密"
+#   - 仅当工作区启用了保密分级(Q9 选 [2])才有用 — 项目主表里有"保密等级"字段时才会被使用
+#   - 若工作区没启用分级,此参数被忽略
 #
 # 例:
 #   bash scripts/new-project.sh ZgiKb7iqAalR9XsYrCYcKFpXnJd "新产品研发"
+#   bash scripts/new-project.sh ZgiKb7iqAalR9XsYrCYcKFpXnJd "客户A机密交付" "L4 机密"
 #
 # 前置:
 #   - 工作区 Base 已通过 bootstrap.sh 建好(项目主表/任务表模板/速查卡/角色 齐全)
@@ -20,14 +26,25 @@
 
 set -euo pipefail
 
-BASE_TOKEN="${1:?用法: new-project.sh <workspace-base-token> <project-name>}"
-PROJECT_NAME="${2:?用法: new-project.sh <workspace-base-token> <project-name>}"
+BASE_TOKEN="${1:?用法: new-project.sh <workspace-base-token> <project-name> [secrecy-level]}"
+PROJECT_NAME="${2:?用法: new-project.sh <workspace-base-token> <project-name> [secrecy-level]}"
+SECRECY_LEVEL="${3:-L2 常规}"
+
+# 校验 secrecy 参数
+case "$SECRECY_LEVEL" in
+  "L1 公开"|"L2 常规"|"L3 敏感"|"L4 机密") ;;
+  *)
+    echo "❌ 保密等级参数无效: '$SECRECY_LEVEL'"
+    echo "   可选值: 'L1 公开' / 'L2 常规' / 'L3 敏感' / 'L4 机密'"
+    exit 1
+    ;;
+esac
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 NEW_TABLE_NAME="任务表·${PROJECT_NAME}"
 NEW_DASHBOARD_NAME="${PROJECT_NAME} · 综合看板"
 
-echo "==> 在 $BASE_TOKEN 创建新项目: $PROJECT_NAME"
+echo "==> 在 $BASE_TOKEN 创建新项目: $PROJECT_NAME (保密等级: $SECRECY_LEVEL,若启用分级才生效)"
 echo ""
 
 python3 << PYEOF
@@ -35,6 +52,7 @@ import json, subprocess, sys, os
 
 BASE = "$BASE_TOKEN"
 PROJECT = "$PROJECT_NAME"
+SECRECY = "$SECRECY_LEVEL"
 NEW_TABLE = "$NEW_TABLE_NAME"
 REPO = "$REPO_ROOT"
 
@@ -52,13 +70,24 @@ project_master = next((t for t in tables if t["name"] == "项目主表"), None)
 if not project_master:
     sys.stderr.write("❌ 没找到 项目主表,请先运行 bootstrap.sh\n")
     sys.exit(1)
-record_payload = {
-    "fields": {
-        "项目名称": PROJECT,
-        "状态": "筹备",
-        "保密等级": "L2 常规"  # 默认保密等级,用户后续在 UI 改
-    }
+
+# 检测项目主表是否启用了保密分级(即是否存在"保密等级"字段)
+fields_resp = cli("+field-list","--base-token",BASE,"--table-id",project_master["id"])
+field_names = {f["name"] for f in fields_resp.get("data", {}).get("fields", [])}
+has_secrecy = "保密等级" in field_names
+
+# 根据是否启用分级,构建 record payload
+record_fields = {
+    "项目名称": PROJECT,
+    "状态": "筹备",
 }
+if has_secrecy:
+    record_fields["保密等级"] = SECRECY
+    print(f"  ℹ 工作区启用了保密分级,本项目设为 {SECRECY}")
+else:
+    print(f"  ℹ 工作区未启用保密分级(无'保密等级'字段),跳过该字段")
+
+record_payload = {"fields": record_fields}
 r = cli(
     "+record-create","--base-token",BASE,"--table-id",project_master["id"],
     "--json",json.dumps(record_payload, ensure_ascii=False)
