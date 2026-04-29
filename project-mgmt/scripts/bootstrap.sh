@@ -2,11 +2,15 @@
 # Bootstrap: 从零创建一个"项目管理中心"工作区 Base
 #
 # 前置:已装飞书 CLI (lark-cli, 即 npm 包 @larksuite/cli) 并已 auth login
-# 用法:bash <skill>/scripts/bootstrap.sh "项目管理中心·业务方向"
-# 输出:新 Base 的 base_token 和 URL
+# 用法:
+#   bash <skill>/scripts/bootstrap.sh "项目管理中心·业务方向"
+#   bash <skill>/scripts/bootstrap.sh "项目管理中心·产品研发" --no-sample
+#
+# 输出:新 Base 的 base_token 和 URL,默认写入 1 个示例项目数据(可 --no-sample 跳过)
 #
 # 幂等说明:
 #   - 视图 / dashboard 步骤已加幂等检测(同名存在则复用,不会因 conflict 中止)
+#   - 示例项目写入也幂等(检测同名项目已存在则跳过)
 #   - base / table / field / role 创建**不幂等**:中途失败时,推荐删除半成品 Base 重新跑
 #   - 字段 / 角色创建失败时,会显示完整 lark-cli 错误明细(stderr + stdout JSON)
 
@@ -16,6 +20,11 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILL_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 BASE_NAME="${1:-项目管理中心(通用模板)}"
+SAMPLE_FLAG="${2:-}"
+WRITE_SAMPLE=true
+if [ "$SAMPLE_FLAG" = "--no-sample" ]; then
+  WRITE_SAMPLE=false
+fi
 
 echo "==> 创建 Base: $BASE_NAME"
 CREATE_OUT=$(lark-cli base +base-create --name "$BASE_NAME" --time-zone Asia/Shanghai)
@@ -211,6 +220,17 @@ DASHBOARD_OUT=$(python3 $SKILL_ROOT/scripts/_apply_dashboard.py \
   --template $SKILL_ROOT/configs/dashboard_template.json)
 echo "$DASHBOARD_OUT"
 DASH_ID=$(echo "$DASHBOARD_OUT" | grep -E "^Dashboard ID:" | awk '{print $3}')
+
+if [ "$WRITE_SAMPLE" = "true" ]; then
+  echo ""
+  echo "==> 写入示例项目数据(让 dashboard 5 图表立刻可见)"
+  python3 $SKILL_ROOT/scripts/_apply_sample_project.py \
+    --base-token "$BASE_TOKEN" \
+    --task-table-name "任务表" || echo "  ⚠️ 示例项目写入失败(非致命,可后续手动跑)"
+else
+  echo ""
+  echo "(已加 --no-sample,跳过示例项目写入)"
+fi
 
 echo ""
 echo "==> 写状态文件 ~/.pm-skill/state/last_bootstrap.json"

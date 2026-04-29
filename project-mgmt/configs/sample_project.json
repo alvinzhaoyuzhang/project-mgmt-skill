@@ -1,0 +1,326 @@
+{
+  "_comment": "示例项目数据 — bootstrap.sh 末尾自动写入飞书,让 dashboard 5 图表立刻有数据可视化。用户首次打开空间能看到完整的项目管理形态,降低学习成本。",
+  "_design_principle": "26 records (1 项目 + 1 目标 + 4 里程碑 + 8 工作包 + 12 叶子任务)。状态分布:已完成/进行中/未开始/阻塞/延期 都有,P0-P3 都有,日期分布在 Q2(2026-04 到 2026-06)。负责人/协作人留空,因为用户实际使用时再绑真实用户。",
+
+  "project": {
+    "_table": "项目主表",
+    "fields": {
+      "项目名称": "示例项目:Q2新产品发布",
+      "项目状态": "进行中",
+      "保密等级": "L2 常规",
+      "项目目标": "Q2 内完成 V2.0 发布,提升用户活跃度 20%",
+      "项目描述": "围绕 V2.0 核心(用户标签 / 智能推荐 / 个人主页改版)的研发与上线。这是 skill 自动生成的示例项目,可参照其结构建你自己的项目。完毕后可手动删除。",
+      "优先级": "P1-高",
+      "开始日期": "2026-04-01",
+      "计划结束日期": "2026-06-30"
+    }
+  },
+
+  "tasks": [
+    {
+      "wbs": "1",
+      "name": "上线 V2.0 实现用户活跃度+20%",
+      "level": "🎯 目标",
+      "parent_wbs": null,
+      "status": "进行中",
+      "priority": "P1-高",
+      "progress": 35,
+      "start_date": "2026-04-01",
+      "plan_end_date": "2026-06-30",
+      "description": "项目最终验收标准:V2.0 三大核心功能(标签 / 推荐 / 个人主页)上线 + 上线 7 天 DAU 提升 ≥ 20%。"
+    },
+
+    {
+      "wbs": "1.1",
+      "name": "需求冻结",
+      "level": "🏁 里程碑",
+      "parent_wbs": "1",
+      "status": "已完成",
+      "priority": "P1-高",
+      "progress": 100,
+      "start_date": "2026-04-01",
+      "plan_end_date": "2026-04-15",
+      "actual_end_date": "2026-04-15",
+      "description": "需求 / PRD / 评审三段全部冻结,作为后续开发的输入"
+    },
+    {
+      "wbs": "1.2",
+      "name": "Beta 发布",
+      "level": "🏁 里程碑",
+      "parent_wbs": "1",
+      "status": "进行中",
+      "priority": "P1-高",
+      "progress": 55,
+      "start_date": "2026-04-16",
+      "plan_end_date": "2026-05-20",
+      "description": "Beta 版本完成核心功能开发,内部团队可用"
+    },
+    {
+      "wbs": "1.3",
+      "name": "GA 发布",
+      "level": "🏁 里程碑",
+      "parent_wbs": "1",
+      "status": "未开始",
+      "priority": "P0-紧急",
+      "progress": 0,
+      "start_date": "2026-05-21",
+      "plan_end_date": "2026-06-15",
+      "description": "公开发布版,通过测试 + 灰度后全量上线"
+    },
+    {
+      "wbs": "1.4",
+      "name": "上线复盘",
+      "level": "🏁 里程碑",
+      "parent_wbs": "1",
+      "status": "未开始",
+      "priority": "P2-中",
+      "progress": 0,
+      "start_date": "2026-06-16",
+      "plan_end_date": "2026-06-30",
+      "description": "数据复盘 + 经验沉淀,为下个版本铺垫"
+    },
+
+    {
+      "wbs": "1.1.1",
+      "name": "用户研究与需求收集",
+      "level": "📦 一级工作",
+      "parent_wbs": "1.1",
+      "status": "已完成",
+      "priority": "P1-高",
+      "progress": 100,
+      "start_date": "2026-04-01",
+      "plan_end_date": "2026-04-08",
+      "actual_end_date": "2026-04-08"
+    },
+    {
+      "wbs": "1.1.2",
+      "name": "PRD 撰写与评审",
+      "level": "📦 一级工作",
+      "parent_wbs": "1.1",
+      "status": "已完成",
+      "priority": "P1-高",
+      "progress": 100,
+      "start_date": "2026-04-09",
+      "plan_end_date": "2026-04-15",
+      "actual_end_date": "2026-04-15"
+    },
+    {
+      "wbs": "1.2.1",
+      "name": "后端开发",
+      "level": "📦 一级工作",
+      "parent_wbs": "1.2",
+      "status": "进行中",
+      "priority": "P1-高",
+      "progress": 60,
+      "start_date": "2026-04-16",
+      "plan_end_date": "2026-05-15"
+    },
+    {
+      "wbs": "1.2.2",
+      "name": "前端开发",
+      "level": "📦 一级工作",
+      "parent_wbs": "1.2",
+      "status": "进行中",
+      "priority": "P1-高",
+      "progress": 50,
+      "start_date": "2026-04-16",
+      "plan_end_date": "2026-05-18"
+    },
+    {
+      "wbs": "1.3.1",
+      "name": "测试与回归",
+      "level": "📦 一级工作",
+      "parent_wbs": "1.3",
+      "status": "未开始",
+      "priority": "P0-紧急",
+      "progress": 0,
+      "start_date": "2026-05-21",
+      "plan_end_date": "2026-06-05"
+    },
+    {
+      "wbs": "1.3.2",
+      "name": "灰度发布",
+      "level": "📦 一级工作",
+      "parent_wbs": "1.3",
+      "status": "未开始",
+      "priority": "P0-紧急",
+      "progress": 0,
+      "start_date": "2026-06-06",
+      "plan_end_date": "2026-06-15"
+    },
+    {
+      "wbs": "1.4.1",
+      "name": "数据复盘",
+      "level": "📦 一级工作",
+      "parent_wbs": "1.4",
+      "status": "未开始",
+      "priority": "P2-中",
+      "progress": 0,
+      "start_date": "2026-06-16",
+      "plan_end_date": "2026-06-23"
+    },
+    {
+      "wbs": "1.4.2",
+      "name": "经验沉淀",
+      "level": "📦 一级工作",
+      "parent_wbs": "1.4",
+      "status": "未开始",
+      "priority": "P3-低",
+      "progress": 0,
+      "start_date": "2026-06-24",
+      "plan_end_date": "2026-06-30"
+    },
+
+    {
+      "wbs": "1.1.1.1",
+      "name": "用户访谈 5 场",
+      "level": "📋 二级工作",
+      "parent_wbs": "1.1.1",
+      "status": "已完成",
+      "priority": "P1-高",
+      "progress": 100,
+      "start_date": "2026-04-01",
+      "plan_end_date": "2026-04-05",
+      "actual_end_date": "2026-04-05",
+      "description": "找 5 位 V1 重度用户,聊 V2 想要的功能",
+      "delivery": "用户访谈报告.docx"
+    },
+    {
+      "wbs": "1.1.1.2",
+      "name": "竞品分析报告",
+      "level": "📋 二级工作",
+      "parent_wbs": "1.1.1",
+      "status": "已完成",
+      "priority": "P2-中",
+      "progress": 100,
+      "start_date": "2026-04-04",
+      "plan_end_date": "2026-04-08",
+      "actual_end_date": "2026-04-08",
+      "delivery": "竞品分析.docx"
+    },
+    {
+      "wbs": "1.1.2.1",
+      "name": "PRD 主文档撰写",
+      "level": "📋 二级工作",
+      "parent_wbs": "1.1.2",
+      "status": "已完成",
+      "priority": "P1-高",
+      "progress": 100,
+      "start_date": "2026-04-09",
+      "plan_end_date": "2026-04-12",
+      "actual_end_date": "2026-04-12",
+      "delivery": "PRD V2.0 v1.0.docx"
+    },
+    {
+      "wbs": "1.1.2.2",
+      "name": "PRD 跨部门评审",
+      "level": "📋 二级工作",
+      "parent_wbs": "1.1.2",
+      "status": "已完成",
+      "priority": "P1-高",
+      "progress": 100,
+      "start_date": "2026-04-13",
+      "plan_end_date": "2026-04-15",
+      "actual_end_date": "2026-04-15",
+      "delivery": "评审纪要 + PRD v1.1.docx"
+    },
+
+    {
+      "wbs": "1.2.1.1",
+      "name": "用户标签服务开发",
+      "level": "📋 二级工作",
+      "parent_wbs": "1.2.1",
+      "status": "进行中",
+      "priority": "P1-高",
+      "progress": 70,
+      "start_date": "2026-04-16",
+      "plan_end_date": "2026-05-05",
+      "recent_update": "2026-04-28 完成标签数据模型 + 标签计算引擎核心逻辑;还差 API 封装和单测,预计 5 月 5 日前完工"
+    },
+    {
+      "wbs": "1.2.1.2",
+      "name": "推荐引擎接入",
+      "level": "📋 二级工作",
+      "parent_wbs": "1.2.1",
+      "status": "阻塞",
+      "priority": "P1-高",
+      "progress": 30,
+      "start_date": "2026-04-25",
+      "plan_end_date": "2026-05-15",
+      "blocker": "等待数据团队提供推荐模型训练集 + API 接口文档,已 @ 数据团队组长 3 天未回",
+      "recent_update": "2026-04-28 阻塞 3 天 — 数据团队那边在赶另一个项目"
+    },
+
+    {
+      "wbs": "1.2.2.1",
+      "name": "标签管理界面",
+      "level": "📋 二级工作",
+      "parent_wbs": "1.2.2",
+      "status": "进行中",
+      "priority": "P2-中",
+      "progress": 60,
+      "start_date": "2026-04-16",
+      "plan_end_date": "2026-05-08",
+      "recent_update": "2026-04-27 完成列表页 + 编辑页 80%,周末完工详情页"
+    },
+    {
+      "wbs": "1.2.2.2",
+      "name": "个人主页改版",
+      "level": "📋 二级工作",
+      "parent_wbs": "1.2.2",
+      "status": "延期",
+      "priority": "P2-中",
+      "progress": 10,
+      "start_date": "2026-04-22",
+      "plan_end_date": "2026-04-28",
+      "recent_update": "2026-04-29 因前端工程师调到 P0 项目临时支援,本任务延期一周。新计划 5 月 5 日完成"
+    },
+
+    {
+      "wbs": "1.3.1.1",
+      "name": "集成测试",
+      "level": "📋 二级工作",
+      "parent_wbs": "1.3.1",
+      "status": "未开始",
+      "priority": "P0-紧急",
+      "progress": 0,
+      "start_date": "2026-05-21",
+      "plan_end_date": "2026-05-30"
+    },
+    {
+      "wbs": "1.3.1.2",
+      "name": "回归测试",
+      "level": "📋 二级工作",
+      "parent_wbs": "1.3.1",
+      "status": "未开始",
+      "priority": "P1-高",
+      "progress": 0,
+      "start_date": "2026-05-28",
+      "plan_end_date": "2026-06-05"
+    },
+    {
+      "wbs": "1.3.2.1",
+      "name": "灰度上线",
+      "level": "📋 二级工作",
+      "parent_wbs": "1.3.2",
+      "status": "未开始",
+      "priority": "P0-紧急",
+      "progress": 0,
+      "start_date": "2026-06-06",
+      "plan_end_date": "2026-06-15"
+    },
+
+    {
+      "wbs": "1.4.1.1",
+      "name": "上线 7 天数据分析",
+      "level": "📋 二级工作",
+      "parent_wbs": "1.4.1",
+      "status": "未开始",
+      "priority": "P2-中",
+      "progress": 0,
+      "start_date": "2026-06-16",
+      "plan_end_date": "2026-06-23",
+      "description": "重点关注 DAU、关键功能渗透率、用户留存曲线"
+    }
+  ]
+}

@@ -129,11 +129,10 @@ else:
         "+record-batch-create","--base-token",BASE,"--table-id",project_master["id"],
         "--json",json.dumps(batch_payload, ensure_ascii=False)
     )
-    # batch_create 返回 data.records 数组(可能为 [] 如果 lark-cli 默认不返回 ids,后续要查)
-    records_out = r.get("data", {}).get("records") or r.get("data", {}).get("record_ids") or []
-    if records_out:
-        first = records_out[0]
-        proj_record_id = first.get("record_id") if isinstance(first, dict) else first
+    # batch_create 返回 data.record_id_list(平行 data.data 列式数据)
+    rids = r.get("data", {}).get("record_id_list", [])
+    if rids:
+        proj_record_id = rids[0]
     print(f"  ✅ 项目记录创建{(',record_id='+proj_record_id) if proj_record_id != '?' else '(record_id 未返回)'}")
 
 # ---- 2. 找一张已有任务表,读其 schema 作为模板;新表幂等(同名复用)----
