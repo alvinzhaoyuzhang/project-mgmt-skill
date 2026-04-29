@@ -4,7 +4,12 @@
 
 1. 不同保密程度的项目可以装在**同一个 Base**里,但访问权限差异化
 2. 用户**字段驱动**而非手工逐表配置(可扩展到新项目无需改权限)
-3. 与飞书 Base 的"高级权限"能力对齐,利用 lookup 字段做跨表条件
+3. 与飞书 Base 的"高级权限"能力对齐
+
+> 📝 **v1.1 设计变更**:本文件 v1.0 描述的"用 lookup 字段 `项目保密等级` 做权限过滤"
+> **已废弃** — 飞书 API 实测**不允许** lookup 字段用在角色 filter_rules。
+> 现在改为"任务保密等级 select 字段 + skill 写入时主动同步"方案。
+> 详见下面"任务表如何继承保密等级 (v1.1 新设计)"段。
 
 ## 4 级保密等级
 
@@ -17,29 +22,45 @@
 | **L3 敏感** | 涉及客户/财务/合同 | 成员仅见分配给自己的任务 | 仅负责人 + PM |
 | **L4 机密** | 战略 / M&A / 合规 | 白名单制,单独授权 | 仅 PM + 授权人 |
 
-## 任务表如何继承保密等级
+## 任务表如何继承保密等级(v1.1 新设计)
 
-**关键字段**:在**任务表**加一个 **Lookup** 字段 `项目保密等级`,从所属项目读取:
+**关键字段**:在**任务表**加一个 **select** 字段 `任务保密等级`,选项与项目主表的 `保密等级` 对齐(L1 公开 / L2 常规 / L3 敏感 / L4 机密):
 
 ```json
 {
-  "type": "lookup",
-  "name": "项目保密等级",
-  "from": "项目主表",
-  "select": "保密等级",
-  "where": {
-    "logic": "and",
-    "conditions": [
-      ["项目名称", "intersects", { "type": "field_ref", "field": "所属项目" }]
-    ]
-  },
-  "aggregate": "raw_value"
+  "name": "任务保密等级",
+  "type": "select",
+  "multiple": false,
+  "description": "由 skill 自动从所属项目'保密等级'同步;请勿手动修改",
+  "options": [
+    {"name": "L1 公开", "hue": "Green", "lightness": "Lighter"},
+    {"name": "L2 常规", "hue": "Blue", "lightness": "Light"},
+    {"name": "L3 敏感", "hue": "Orange", "lightness": "Light"},
+    {"name": "L4 机密", "hue": "Red", "lightness": "Light"}
+  ]
 }
 ```
 
-这个字段**只读、自动计算**,是权限系统能按保密等级做行级过滤的前提。
+### 同步机制(skill 主动维护)
 
-**已验证**:飞书 Base 的行级权限条件支持以 `field_type: Lookup` + `reference_type: SingleSelect` 作为筛选字段,`is_invalid: false`。
+由于飞书**禁止** lookup 字段用于角色 filter_rules,我们用 select 实体字段 + skill 在写入时主动同步:
+
+| 触发点 | 动作 |
+|---|---|
+| 创建任务 | skill 读所属项目的 `保密等级`,作为新任务的 `任务保密等级` 写入 |
+| 改任务"所属项目" | skill 重新读新所属项目的 `保密等级`,更新 `任务保密等级` |
+| 用户改项目主表 `保密等级` | 用户跑 `pm sync-secrecy --project X` cascade 到该项目所有任务 |
+
+详见 `references/feishu-permission-limits.md` + `scripts/_sync_secrecy.py`。
+
+### 为什么这样改
+
+| 设计 | 原版(lookup) | v1.1(select+sync) |
+|---|---|---|
+| 字段类型 | lookup(自动) | select(skill 维护) |
+| 用作角色 filter | ❌ 飞书禁止(实测错误:"字段...不支持在权限过滤规则中使用") | ✅ 正常工作 |
+| 同步时效 | 实时(lookup 自动) | skill 写入时同步;项目级改动需手动 cascade |
+| 实现复杂度 | 简单(声明 lookup 即可) | 复杂(skill 多处需维护同步) |
 
 ## 表的编辑策略
 
@@ -78,7 +99,7 @@
   - 可读范围:`项目成员包含当前用户`
 - **任务表权限**:`edit`
   - **可读范围**(条件 OR):
-    - `项目保密等级 contains [L1 公开, L2 常规]` — 公开/常规项目全部可读
+    - `任务保密等级 contains [L1 公开, L2 常规]` — 公开/常规项目全部可读(任务级 select 字段,由 skill 同步)
     - OR `负责人 contains 当前用户` — 自己负责的
     - OR `协作人 contains 当前用户` — 自己协作的
   - **可编辑范围**(条件 OR):
@@ -119,7 +140,8 @@
 ## 已知限制
 
 - 飞书 Base 行级条件**不支持嵌套 and/or**(只有一层 or)
-- lookup 字段用于过滤时,`reference_type` 由后端推断,如果源字段类型改变可能要重新保存角色
+- **lookup / formula / link / auto_number 等字段类型禁止用在角色 filter_rules**(实测确认 — 详见 `references/feishu-permission-limits.md`)
+- 项目级 `保密等级` 改动后,**任务的 `任务保密等级` 不会自动跟变**,需手动跑 `pm sync-secrecy` cascade(见 `scripts/_sync_secrecy.py`)
 - 项目经理绑定无法"只看自己的项目" — 他们实际上可以看全部项目主表(但无法编辑别人的),这是飞书权限能力的限制
 
 ## 待验证

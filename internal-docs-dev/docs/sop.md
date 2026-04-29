@@ -522,17 +522,17 @@ WBS 编号
 <lark-tr>
 <lark-td>
 
-项目保密等级
+任务保密等级
 
 </lark-td>
 <lark-td>
 
-Lookup(自动)
+Select(skill 同步)
 
 </lark-td>
 <lark-td>
 
-从所属项目自动读取,用于权限过滤。不用手填
+从所属项目"保密等级"由 skill 自动同步(创建任务/改所属项目时),用于权限过滤。不用手填(改了下次 cascade 会被覆盖)
 
 </lark-td>
 </lark-tr>
@@ -1036,7 +1036,7 @@ Base owner(张诏瑜)
 </lark-table>
 
 <callout emoji="🔐" background-color="light-purple">
-**关键**:权限系统基于「**项目保密等级** lookup 字段」驱动。新建项目时只要正确设置保密等级,权限自动生效,不需要手工配置每个任务的可见性。
+**关键**(v1.1 更新):权限系统基于「**任务保密等级** select 字段」驱动,该字段由 skill 在创建任务/改所属项目时**自动从项目主表「保密等级」同步**(原计划用 lookup 字段,但飞书禁止 lookup 用于角色 filter,改为 select + sync 方案)。新建项目时只要正确设置项目「保密等级」,任务字段同步后权限自动生效。
 </callout>
 
 ### 表的编辑策略(表级权限矩阵)

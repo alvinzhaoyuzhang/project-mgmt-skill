@@ -55,7 +55,7 @@
 | 风险与阻塞 | text | 否 | 正在发生的问题 |
 | 最近更新 | text | 建议 | `YYYY-MM-DD 做了X,下一步Y,需要Z支持` |
 | 附件 | attachment | 否 | 图纸、截图、参考文档 |
-| **项目保密等级** | lookup(自动) | 自动 | 从所属项目.保密等级读取,驱动权限 |
+| **任务保密等级**(v1.1) | select(skill 同步) | skill 自动 | 从所属项目.保密等级**写入时同步**(原计划用 lookup,但飞书禁止 lookup 在角色 filter,改用 select 实体)|
 | 更新时间 | updated_at | 自动 | 系统字段 |
 | 更新人 | updated_by | 自动 | 系统字段 |
 
