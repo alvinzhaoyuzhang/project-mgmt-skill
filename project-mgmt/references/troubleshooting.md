@@ -2,6 +2,53 @@
 
 > 当用户遇到错误时读这个文件。按错误现象索引,给出诊断 + 修复路径。
 
+---
+
+## 0. 通用诊断 SOP(任何报错先读这一节)
+
+**这是流程契约,LLM 必须遵守:**
+
+### 规则 0.1 · 出现任何"X 失败"类报错时,先 list 验证状态,再下结论
+
+**禁止**只看 Python `CalledProcessError` / lark-cli 的 exit code 就直接给"建议手动建 / 等会再试 / 找飞书支持"这类套话。
+
+**必做的诊断步骤**:
+
+1. **拿原始报错** — 不要看用户/上层的转述,要看 lark-cli 的原始 stdout JSON,长得像:
+   ```json
+   {"entity":"user","error":{"type":"api_error","code":1,"message":"...","detail":{"code":"800xxxxx",...}}}
+   ```
+2. **看 detail.code** — 飞书 API 错误码定位真正问题:
+   - `800005008` = 名称冲突(name 已存在)
+   - `800008006` = 服务端 internal_error,**很可能是 silent success**(资源实际已建,API 谎报)
+   - `1254xxx` = 权限不足
+3. **list 验证实际状态** — 比如 dashboard create 报错,跑 `+dashboard-list` 看真不真存在
+4. **根据 list 结果分流** — 实际成功 → 跳过该步;实际失败 → 决定 retry 还是改方案
+
+### 规则 0.2 · `.py` 用 `python3` 跑,`.sh` 用 `bash` 跑
+
+**别混用**。常见错误:`bash _apply_dashboard.py`(.py 是 Python 脚本)→ 立刻 SyntaxError。
+
+**判断方式**:看脚本第一行 shebang
+- `#!/usr/bin/env python3` → 用 `python3 some.py`(或 `./some.py` 如有 +x)
+- `#!/usr/bin/env bash` → 用 `bash some.sh`(或 `./some.sh` 如有 +x)
+
+### 规则 0.3 · 飞书 API `code=800008006: failed to get dashboard` 不是临时故障
+
+这是反复观察到的**模式化 bug**:
+- create 命令服务端实际成功,但 API 在 follow-up "get" 步骤失败
+- 表现为脚本看到 error 退出,但 dashboard / block 实际已建
+- 称为 **"silent success"**
+
+**正确处理**:**绝对不要重试整个 bootstrap.sh**(会创建一堆重复资源)。
+应当:
+1. List 该资源(dashboard / block / table)看实际状态
+2. 已建 → 跳过,继续下一步
+3. 未建 → 单步 retry(2-3 次,每次间隔 3 秒)
+4. v1.1.1 后的 `_apply_dashboard.py` 已自动处理这个模式,无需手动 retry
+
+---
+
 ## 1. 飞书 CLI / 登录类
 
 ### 1.1 `lark-cli: command not found`
@@ -213,6 +260,44 @@ pm init --reset
 **原因**:飞书 dashboard filter 对 link 字段的 `contains` 操作符返回 0 条。
 
 **修复**:加一个 `所属项目名称` lookup 字段(从 link 字段拉文本),filter 改用 text 字段的 `is` 操作符。
+
+### 8.4 Dashboard 是空壳(看到 dashboard 但里面 0 个图表)
+
+**症状**:打开 dashboard 是空白页 / `+dashboard-block-list` 返回 `total: 0`。
+
+**根因**:`_apply_dashboard.py` 在创建 dashboard 时遇到飞书 `800008006: failed to get dashboard`(silent success — 服务端实际成功),退出。重跑时 v1.1.0 的幂等检测看到 dashboard 已存在就 skip,**导致 5 个 block 永远没机会建**。
+
+**v1.1.1 已修复**:新版 `_apply_dashboard.py` 现在区分"已完整(>= 1 block)"vs"空壳(0 block)",空壳会**复用 dashboard_id 继续补建 block**。
+
+**手动救场**(如果你卡在 v1.1.0):
+```bash
+# 1. 看实际 block 数
+lark-cli base +dashboard-block-list --base-token <BASE> --dashboard-id <DASH>
+
+# 2. 如果是 0,删掉空壳后重跑脚本(v1.1.0 的写法)
+lark-cli base +dashboard-delete --base-token <BASE> --dashboard-id <DASH> --yes
+python3 <SKILL_ROOT>/scripts/_apply_dashboard.py \
+  --base-token <BASE> \
+  --dashboard-name "综合看板·模板" \
+  --task-table-name "任务表" \
+  --project-name "示例项目:Q2新产品发布" \
+  --template <SKILL_ROOT>/configs/dashboard_template.json
+```
+
+升级到 v1.1.1 后无需手动救场。
+
+### 8.5 飞书 API 反复报 `800008006: failed to get dashboard`
+
+**症状**:dashboard 或 block create 命令返回 `code=800008006`,看起来失败,但其实**资源已建出来**。
+
+**根因**:飞书服务端在 create 流程的 "get-after-create" 步骤间歇性失败(API 内部 race condition)。这是飞书侧 bug,不是我们代码问题。
+
+**正确处理 SOP**(详见 §0.3):
+- ❌ 不要"等 5-10 分钟再试整个 bootstrap"(会重复建 + 撞 name 冲突)
+- ✅ 先 list 看资源是否实际已建
+- ✅ 已建 → 跳过该步,继续下一步
+- ✅ 未建 → 单步 retry 2-3 次,间隔 3 秒
+- ✅ v1.1.1 的 `_apply_dashboard.py` 已自动处理
 
 ## 9. 视图配置问题
 
