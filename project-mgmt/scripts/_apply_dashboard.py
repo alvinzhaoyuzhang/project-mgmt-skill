@@ -208,23 +208,23 @@ def main():
         "<PROJECT_NAME>": args.project_name,
     }
 
-    # 1. 找到或创建 dashboard(区分"已完整"vs"空壳")
+    # 1. 找到或创建 dashboard
+    expected_block_count = len(tpl["blocks"])
     existing_id = find_existing_dashboard(args.base_token, args.dashboard_name)
     if existing_id:
         existing_blocks = list_dashboard_blocks(args.base_token, existing_id)
         block_count = len(existing_blocks)
-        if block_count > 0:
-            print(f"  ✅ Dashboard '{args.dashboard_name}' 已完整存在 ({block_count} 个 block),跳过整段")
+        if block_count >= expected_block_count:
+            print(f"  ✅ Dashboard '{args.dashboard_name}' 已完整存在 ({block_count}/{expected_block_count} 个 block),跳过整段")
             print(f"\nDashboard ID: {existing_id}")
             return
         else:
-            print(f"  ⚠️ Dashboard '{args.dashboard_name}' 是空壳 (0 block),复用 dashboard_id 继续补建 block")
-            print(f"     (这通常是飞书 internal_error 导致的 silent-success 残留)")
+            print(f"  ⚠️ Dashboard '{args.dashboard_name}' 已存在但不完整 ({block_count}/{expected_block_count} 个 block),复用 dashboard_id 继续补建缺失的 block")
             dash_id = existing_id
     else:
         dash_id = create_dashboard_with_retry(args.base_token, args.dashboard_name)
 
-    # 2. 列出已有 block,跳过同名(支持单次执行的部分失败重跑)
+    # 2. 列出已有 block,跳过同名(支持单次执行的部分失败重跑;也用于已存在 dashboard 的"补建"模式)
     existing_blocks_now = list_dashboard_blocks(args.base_token, dash_id)
     existing_block_names = {b.get("name") for b in existing_blocks_now if b.get("name")}
     if existing_block_names:

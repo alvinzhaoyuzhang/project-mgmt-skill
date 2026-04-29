@@ -27,14 +27,16 @@
             "field_name": "所属里程碑",
             "mode": "integrated",
             "sort": {
-              "type": "group"
+              "type": "group",
+              "order": "asc"
             }
           },
           {
             "field_name": "状态",
             "mode": "integrated",
             "sort": {
-              "type": "group"
+              "type": "group",
+              "order": "asc"
             }
           }
         ],
@@ -109,14 +111,16 @@
             "field_name": "到期时段",
             "mode": "integrated",
             "sort": {
-              "type": "group"
+              "type": "group",
+              "order": "asc"
             }
           },
           {
             "field_name": "状态",
             "mode": "integrated",
             "sort": {
-              "type": "group"
+              "type": "group",
+              "order": "asc"
             }
           }
         ],
@@ -143,14 +147,16 @@
             "field_name": "任务级别",
             "mode": "integrated",
             "sort": {
-              "type": "group"
+              "type": "group",
+              "order": "asc"
             }
           },
           {
             "field_name": "状态",
             "mode": "integrated",
             "sort": {
-              "type": "group"
+              "type": "group",
+              "order": "asc"
             }
           }
         ],

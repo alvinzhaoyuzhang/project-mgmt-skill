@@ -203,12 +203,62 @@ python3 $SKILL_ROOT/scripts/_apply_views.py \
   --views-config $SKILL_ROOT/configs/views/task_views.json
 
 echo "==> 建综合看板·模板"
-python3 $SKILL_ROOT/scripts/_apply_dashboard.py \
+DASHBOARD_OUT=$(python3 $SKILL_ROOT/scripts/_apply_dashboard.py \
   --base-token "$BASE_TOKEN" \
   --dashboard-name "综合看板·模板" \
   --task-table-name "任务表" \
   --project-name "示例项目:Q2新产品发布" \
-  --template $SKILL_ROOT/configs/dashboard_template.json
+  --template $SKILL_ROOT/configs/dashboard_template.json)
+echo "$DASHBOARD_OUT"
+DASH_ID=$(echo "$DASHBOARD_OUT" | grep -E "^Dashboard ID:" | awk '{print $3}')
+
+echo ""
+echo "==> 写状态文件 ~/.pm-skill/state/last_bootstrap.json"
+mkdir -p ~/.pm-skill/state
+python3 << PYEOF
+import json, subprocess, os, sys
+from datetime import datetime
+
+BASE_TOKEN = "$BASE_TOKEN"
+
+# 拿所有角色 id
+roles_resp = subprocess.run(
+    ["lark-cli","base","+role-list","--base-token",BASE_TOKEN],
+    capture_output=True, text=True
+)
+role_ids = {}
+if roles_resp.returncode == 0:
+    try:
+        d = json.loads(roles_resp.stdout)
+        items = json.loads(d.get("data",{}).get("data","{}")).get("base_roles", [])
+        for raw in items:
+            r = json.loads(raw)
+            if r.get("role_type") == "custom_role":
+                role_ids[r["role_name"]] = r["role_id"]
+    except Exception as e:
+        sys.stderr.write(f"⚠️  解析 role-list 失败: {e}\n")
+
+state = {
+    "base_token": BASE_TOKEN,
+    "base_name": "$BASE_NAME",
+    "url": "$BASE_URL",
+    "tables": {
+        "项目主表": "$DEFAULT_TBL",
+        "任务表": "$TASK_TBL",
+        "速查卡·字段分级权限": "$CHEAT_TBL",
+    },
+    "dashboard_id": "$DASH_ID",
+    "roles": role_ids,
+    "created_at": datetime.now().isoformat(timespec="seconds"),
+    "schema_version": "v1.1.3",
+}
+
+state_path = os.path.expanduser("~/.pm-skill/state/last_bootstrap.json")
+with open(state_path, "w", encoding="utf-8") as f:
+    json.dump(state, f, ensure_ascii=False, indent=2)
+print(f"    ✅ 状态已写入 {state_path}")
+print(f"    💡 后续操作(new-project / 任务批改 / 报告等)需要 base_token / table id 时,请直接 cat 这个文件读,不要从对话上下文中猜或拼凑")
+PYEOF
 
 echo ""
 echo "==> DONE"
@@ -217,6 +267,9 @@ echo "    url: $BASE_URL"
 echo "    项目主表 id: $DEFAULT_TBL"
 echo "    任务表 id: $TASK_TBL"
 echo "    速查卡 id: $CHEAT_TBL"
+echo "    dashboard_id: $DASH_ID"
+echo ""
+echo "  💾 完整状态:cat ~/.pm-skill/state/last_bootstrap.json"
 echo ""
 echo "下一步:"
 echo "  1. UI 手动配置:'我的任务'/我负责的项目'视图加'当前用户'过滤;甘特图按状态着色"

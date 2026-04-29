@@ -61,6 +61,27 @@ lark-cli auth status
 
 > 给小白用户的"魔法咒语"(可让他们自己粘贴):**"帮我安装飞书 CLI:https://open.feishu.cn/document/no_class/mcp-archive/feishu-cli-installation-guide.md"**
 
+### 2.2.1 ID 字符串处理 — 严禁从对话上下文猜,必须从状态文件读
+
+**实测发现的 LLM 行为 bug**(2026-04-29):用户跑完 bootstrap 后,LLM 给用户的 base_token 是 `ElClD9`(6 字符),但真实 token 是 `JMOabxdsFanu9OsO6XEcXWMTnGf`(26 字符)。LLM **虚构 / 截断了长字符串 ID**,导致后续所有操作 NOTEXIST 失败。
+
+**强制规则**(对所有长 ID:base_token / record_id / table_id / dashboard_id / role_id):
+
+1. **状态落盘机制**:`bootstrap.sh` / `new-project.sh` 末尾**自动写**状态文件:
+   - `~/.pm-skill/state/last_bootstrap.json` — 最近一次 bootstrap 的所有 ID
+   - `~/.pm-skill/state/projects/<项目名>.json` — 每个项目的 record_id / 任务表 id / dashboard_id
+
+2. **任何后续操作需要长 ID 时,必须从状态文件读,不要从对话上下文凭印象引用**:
+   ```bash
+   # ✅ 对的做法
+   BASE_TOKEN=$(cat ~/.pm-skill/state/last_bootstrap.json | python3 -c "import json,sys; print(json.load(sys.stdin)['base_token'])")
+
+   # ❌ 错的做法
+   "我记得 token 是 ElClD9..."  # ← LLM 截断/虚构,99% 错
+   ```
+
+3. **理由**:LLM 不能可靠转述长随机字符串。这不是 prompt 设计能修的,是 LLM 的本质局限。状态落盘 + cat 文件读是唯一可靠方案。
+
 ### 2.2 诊断纪律(出错时必读)
 
 **这是流程契约,不是建议:** 用户报告"X 失败了"时,你**不能**直接跳到"我来手动建 / 等会再试 / 找飞书支持"这种套话。**先诊断再下结论**。
@@ -77,6 +98,20 @@ lark-cli auth status
 **反例(实际发生过 4 次)**:OpenClaw 看到 dashboard create 报 internal_error,直接给"建议手动建"。**没先 list 看,导致资源已建出来还在折腾**。下次别这样。
 
 完整 SOP 在 `references/troubleshooting.md` 第 0 节(通用诊断 SOP)和第 8.4/8.5 节(dashboard 相关)。
+
+### 2.3 卡住时不能默认让用户手 UI(违反自动化承诺)
+
+**实测发现的反模式**(2026-04-29):OpenClaw 在 approval 超时 / 脚本失败 / dashboard 出错时,**反复**(多次贴相同消息)建议"你直接在飞书 UI 里手动加"。这违反 skill 的自动化承诺 — 用户付费买 skill 是为了**自动化**,不是 LLM 卡住时把工作甩回用户手上。
+
+**正确处理顺序**(从优到差):
+
+1. **retry 同一命令 1-2 次** — 飞书 internal_error 经常 transient,等 3 秒再试
+2. **list 验证实际状态** — 看资源是不是其实已建出来(silent-success)
+3. **减小批次** — 27 任务 batch_create 失败?试 5 任务一批
+4. **建议用户在本地终端跑同一脚本** — OpenClaw 沙箱 approval 超时 ≠ lark-cli 不可用。本地终端跑 `bash scripts/new-project.sh ...` 不需要 OpenClaw approval
+5. **手 UI 是最后兜底,且必须明示这是兜底** — "我已尝试 retry / list / 减批次 / 建议本地跑,都不行,作为最后兜底建议你 UI 手配"
+
+**严禁**:第一次失败就跳到"你 UI 手做"。这是 LLM 偷懒。
 
 ## 3. 主流程 · 场景路由
 
@@ -232,6 +267,39 @@ python3 $SKILL_ROOT/scripts/_recommend_arch.py \
 答案映射:[1]→`1-3`,[2]→`4-10`,[3]→`10+`(传给 `_recommend_arch.py --projects`)
 
 **[3] 触发 §4.3 安全网,必须独立追问**。
+
+#### Q7 空间名确认(阶段 E 屏 3)— 必问,不能跳过
+
+<wizard-screen-q7>
+
+```
+✏️  空间命名
+
+我准备给你的空间起名:**项目管理中心·<Q6 选的业务方向>**
+(例:项目管理中心·产品研发)
+
+  [Enter / 1] 用这个默认名
+  [2] 自定义命名(例:朗晖项目管理 / Q3冲刺空间)
+
+▸ 选 1-2 (默认 [1]):
+```
+
+</wizard-screen-q7>
+
+**重要**:Q7 必问,**不能跳到 Q8 / Preview**。bootstrap.sh 的第一个参数是空间名,没传会用默认 `项目管理中心(通用模板)` — 这不是用户想要的体验。
+
+如果用户选 [2] 自定义,follow-up 问:
+
+```
+✏️  起一个名字
+
+为这个空间起个简短描述,作为飞书内识别标签。
+例:DataOps · 数据团队 · 营销联盟
+
+⚠️ 不超过 20 字,不能用 / \ : * ? " | 等特殊字符
+
+▸ 输入名字:
+```
 
 #### Q6 业务方向(阶段 E 屏 1)
 
